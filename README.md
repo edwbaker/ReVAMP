@@ -4,7 +4,7 @@
 
 <!-- badges: end -->
 
-ReVAMP provides an R interface to the [Vamp audio analysis plugin system](https://www.vamp-plugins.org/) developed by Queen Mary University of London's Centre for Digital Music. It enables R users to load and run Vamp plugins for Music Information Retrieval (MIR) tasks like tempo detection, onset detection, spectral analysis, and feature extraction.
+ReVAMP provides an R interface to the [Vamp audio analysis plugin system](https://www.vamp-plugins.org/) developed by Queen Mary University of London's Centre for Digital Music. It enables R users to load and run Vamp plugins for tasks like tempo detection, onset detection, spectral analysis, and feature extraction.
 
 ## Features
 
@@ -34,23 +34,7 @@ devtools::install_github("yourusername/ReVAMP")  # Update with actual repo
 
 ## Installing Vamp Plugins
 
-ReVAMP requires external Vamp plugins to be installed. Use the built-in installation function:
-
-``` r
-library(ReVAMP)
-
-# List available plugins for download
-list_available_plugins()
-
-# Install to user directory (no admin required)
-install_vamp_plugins("vamp-aubio-plugins", user_dir = TRUE)
-
-# Verify installation
-plugins <- vampPlugins()
-head(plugins)
-```
-
-**Plugin Directories:** - **Windows**: `%USERPROFILE%\Vamp Plugins` (user) or `C:\Program Files\Vamp Plugins` (system) - **macOS**: `~/Library/Audio/Plug-Ins/Vamp` (user) or `/Library/Audio/Plug-Ins/Vamp` (system) - **Linux**: `~/.vamp` (user) or `/usr/lib/vamp` (system)
+ReVAMP requires external Vamp plugins to be installed.
 
 ## Quick Start
 
@@ -222,4 +206,4 @@ GPL (\>= 2)
 
 ## Author
 
-Your Name [your\@email.com](mailto:your@email.com){.email}
+Ed Baker [ed\@ebaker.me.uk](mailto:ed@ebaker.me.uk){.email}
