@@ -3,9 +3,8 @@
 ReVAMP provides an R interface to the [Vamp audio analysis plugin
 system](https://www.vamp-plugins.org/) developed by Queen Mary
 University of London’s Centre for Digital Music. It enables R users to
-load and run Vamp plugins for Music Information Retrieval (MIR) tasks
-like tempo detection, onset detection, spectral analysis, and feature
-extraction.
+load and run Vamp plugins for tasks like tempo detection, onset
+detection, spectral analysis, and feature extraction.
 
 ## Features
 
@@ -39,27 +38,7 @@ devtools::install_github("yourusername/ReVAMP")  # Update with actual repo
 
 ## Installing Vamp Plugins
 
-ReVAMP requires external Vamp plugins to be installed. Use the built-in
-installation function:
-
-``` r
-library(ReVAMP)
-
-# List available plugins for download
-list_available_plugins()
-
-# Install to user directory (no admin required)
-install_vamp_plugins("vamp-aubio-plugins", user_dir = TRUE)
-
-# Verify installation
-plugins <- vampPlugins()
-head(plugins)
-```
-
-**Plugin Directories:** - **Windows**: `%USERPROFILE%\Vamp Plugins`
-(user) or `C:\Program Files\Vamp Plugins` (system) - **macOS**:
-`~/Library/Audio/Plug-Ins/Vamp` (user) or `/Library/Audio/Plug-Ins/Vamp`
-(system) - **Linux**: `~/.vamp` (user) or `/usr/lib/vamp` (system)
+ReVAMP requires external Vamp plugins to be installed.
 
 ## Quick Start
 
@@ -243,29 +222,29 @@ GPL (\>= 2)
 
 ## Author
 
-Your Name <your@email.com>
+Ed Baker <ed@ebaker.me.uk>
 
 # Package index
 
 ## All functions
 
-- [`ReVAMP-package`](http://ebaker.me.uk/ReVAMP/reference/ReVAMP-package.md)
-  [`ReVAMP`](http://ebaker.me.uk/ReVAMP/reference/ReVAMP-package.md) : R
+- [`ReVAMP-package`](http://revamp.ebaker.me.uk/reference/ReVAMP-package.md)
+  [`ReVAMP`](http://revamp.ebaker.me.uk/reference/ReVAMP-package.md) : R
   Interface to Vamp Audio Analysis Plugins
-- [`get_vamp_plugin_dir()`](http://ebaker.me.uk/ReVAMP/reference/get_vamp_plugin_dir.md)
+- [`get_vamp_plugin_dir()`](http://revamp.ebaker.me.uk/reference/get_vamp_plugin_dir.md)
   : Get the appropriate Vamp plugin directory for the current OS
-- [`install_vamp_plugins()`](http://ebaker.me.uk/ReVAMP/reference/install_vamp_plugins.md)
+- [`install_vamp_plugins()`](http://revamp.ebaker.me.uk/reference/install_vamp_plugins.md)
   : Download and install Vamp plugins
-- [`list_available_plugins()`](http://ebaker.me.uk/ReVAMP/reference/list_available_plugins.md)
+- [`list_available_plugins()`](http://revamp.ebaker.me.uk/reference/list_available_plugins.md)
   : List available Vamp plugins for download
-- [`runPlugin()`](http://ebaker.me.uk/ReVAMP/reference/runPlugin.md) :
+- [`runPlugin()`](http://revamp.ebaker.me.uk/reference/runPlugin.md) :
   Run a Vamp Plugin on Audio Data
-- [`vampInfo()`](http://ebaker.me.uk/ReVAMP/reference/vampInfo.md) : Get
+- [`vampInfo()`](http://revamp.ebaker.me.uk/reference/vampInfo.md) : Get
   Vamp API and SDK Version Information
-- [`vampParams()`](http://ebaker.me.uk/ReVAMP/reference/vampParams.md) :
+- [`vampParams()`](http://revamp.ebaker.me.uk/reference/vampParams.md) :
   Get Parameters for a Specific Vamp Plugin
-- [`vampPaths()`](http://ebaker.me.uk/ReVAMP/reference/vampPaths.md) :
+- [`vampPaths()`](http://revamp.ebaker.me.uk/reference/vampPaths.md) :
   Get Vamp Plugin Search Paths
-- [`vampPlugins()`](http://ebaker.me.uk/ReVAMP/reference/vampPlugins.md)
+- [`vampPlugins()`](http://revamp.ebaker.me.uk/reference/vampPlugins.md)
   : List All Available Vamp Plugins
 

@@ -49,7 +49,7 @@
 </h1></div>
 <!-- badges: start -->
 <!-- badges: end -->
-<p>ReVAMP provides an R interface to the <a href="https://www.vamp-plugins.org/" class="external-link">Vamp audio analysis plugin system</a> developed by Queen Mary University of London’s Centre for Digital Music. It enables R users to load and run Vamp plugins for Music Information Retrieval (MIR) tasks like tempo detection, onset detection, spectral analysis, and feature extraction.</p>
+<p>ReVAMP provides an R interface to the <a href="https://www.vamp-plugins.org/" class="external-link">Vamp audio analysis plugin system</a> developed by Queen Mary University of London’s Centre for Digital Music. It enables R users to load and run Vamp plugins for tasks like tempo detection, onset detection, spectral analysis, and feature extraction.</p>
 <div class="section level2">
 <h2 id="features">Features<a class="anchor" aria-label="anchor" href="#features"></a>
 </h2>
@@ -83,26 +83,13 @@
 <div class="section level2">
 <h2 id="installing-vamp-plugins">Installing Vamp Plugins<a class="anchor" aria-label="anchor" href="#installing-vamp-plugins"></a>
 </h2>
-<p>ReVAMP requires external Vamp plugins to be installed. Use the built-in installation function:</p>
-<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="http://ebaker.me.uk/ReVAMP/">ReVAMP</a></span><span class="op">)</span></span>
-<span></span>
-<span><span class="co"># List available plugins for download</span></span>
-<span><span class="fu"><a href="reference/list_available_plugins.html">list_available_plugins</a></span><span class="op">(</span><span class="op">)</span></span>
-<span></span>
-<span><span class="co"># Install to user directory (no admin required)</span></span>
-<span><span class="fu"><a href="reference/install_vamp_plugins.html">install_vamp_plugins</a></span><span class="op">(</span><span class="st">"vamp-aubio-plugins"</span>, user_dir <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
-<span></span>
-<span><span class="co"># Verify installation</span></span>
-<span><span class="va">plugins</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/vampPlugins.html">vampPlugins</a></span><span class="op">(</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">plugins</span><span class="op">)</span></span></code></pre></div>
-<p><strong>Plugin Directories:</strong> - <strong>Windows</strong>: <code>%USERPROFILE%\Vamp Plugins</code> (user) or <code>C:\Program Files\Vamp Plugins</code> (system) - <strong>macOS</strong>: <code>~/Library/Audio/Plug-Ins/Vamp</code> (user) or <code>/Library/Audio/Plug-Ins/Vamp</code> (system) - <strong>Linux</strong>: <code>~/.vamp</code> (user) or <code>/usr/lib/vamp</code> (system)</p>
+<p>ReVAMP requires external Vamp plugins to be installed.</p>
 </div>
 <div class="section level2">
 <h2 id="quick-start">Quick Start<a class="anchor" aria-label="anchor" href="#quick-start"></a>
 </h2>
-<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="http://ebaker.me.uk/ReVAMP/">ReVAMP</a></span><span class="op">)</span></span>
+<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="http://ebaker.me.uk/ReVAMP/" class="external-link">ReVAMP</a></span><span class="op">)</span></span>
 <span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://tuner.R-forge.R-project.org" class="external-link">tuneR</a></span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># Load audio file</span></span>
@@ -140,7 +127,7 @@
 <h3 id="onset-detection">Onset Detection<a class="anchor" aria-label="anchor" href="#onset-detection"></a>
 </h3>
 <p>Detect note onsets in audio:</p>
-<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">onsets</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/runPlugin.html">runPlugin</a></span><span class="op">(</span></span>
 <span>  myname <span class="op">=</span> <span class="st">"analysis"</span>,</span>
 <span>  soname <span class="op">=</span> <span class="st">"vamp-aubio-plugins"</span>,</span>
@@ -163,7 +150,7 @@
 <h3 id="tempo-detection">Tempo Detection<a class="anchor" aria-label="anchor" href="#tempo-detection"></a>
 </h3>
 <p>Estimate tempo (BPM):</p>
-<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">tempo</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/runPlugin.html">runPlugin</a></span><span class="op">(</span></span>
 <span>  myname <span class="op">=</span> <span class="st">"analysis"</span>,</span>
 <span>  soname <span class="op">=</span> <span class="st">"vamp-aubio-plugins"</span>,</span>
@@ -181,7 +168,7 @@
 <h3 id="spectral-centroid">Spectral Centroid<a class="anchor" aria-label="anchor" href="#spectral-centroid"></a>
 </h3>
 <p>Analyze spectral characteristics:</p>
-<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">centroid</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/runPlugin.html">runPlugin</a></span><span class="op">(</span></span>
 <span>  myname <span class="op">=</span> <span class="st">"analysis"</span>,</span>
 <span>  soname <span class="op">=</span> <span class="st">"vamp-example-plugins"</span>,</span>
@@ -201,7 +188,7 @@
 <div class="section level2">
 <h2 id="package-information">Package Information<a class="anchor" aria-label="anchor" href="#package-information"></a>
 </h2>
-<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Get Vamp API/SDK version info</span></span>
 <span><span class="fu"><a href="reference/vampInfo.html">vampInfo</a></span><span class="op">(</span><span class="op">)</span></span>
 <span></span>
@@ -250,7 +237,7 @@
 <h2 id="development">Development<a class="anchor" aria-label="anchor" href="#development"></a>
 </h2>
 <p>The package uses standard R/Rcpp development tools:</p>
-<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://devtools.r-lib.org/" class="external-link">devtools</a></span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># Make changes to code...</span></span>
@@ -285,7 +272,7 @@
 <div class="section level2">
 <h2 id="author">Author<a class="anchor" aria-label="anchor" href="#author"></a>
 </h2>
-<p>Your Name <a href="mailto:your@email.com" class="email">your@email.com</a></p>
+<p>Ed Baker <a href="mailto:ed@ebaker.me.uk" class="email">ed@ebaker.me.uk</a></p>
 </div>
 </div>
   </main><aside class="col-md-3"><div class="license">

@@ -16,7 +16,7 @@ vampParams(key)
 
   Character string specifying the plugin key in "library:plugin" format
   (e.g., "vamp-aubio-plugins:aubionotes"). Use
-  [`vampPlugins`](http://ebaker.me.uk/ReVAMP/reference/vampPlugins.md)
+  [`vampPlugins`](http://revamp.ebaker.me.uk/reference/vampPlugins.md)
   to get plugin IDs.
 
 ## Value
@@ -60,7 +60,7 @@ parameters.
 
 ## See also
 
-[`vampPlugins`](http://ebaker.me.uk/ReVAMP/reference/vampPlugins.md) to
+[`vampPlugins`](http://revamp.ebaker.me.uk/reference/vampPlugins.md) to
 list available plugins
 
 ## Examples

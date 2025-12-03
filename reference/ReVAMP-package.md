@@ -11,13 +11,13 @@ analysis, and audio feature extraction.
 The ReVAMP package allows R users to access the extensive library of
 Vamp audio analysis plugins. Key functions include:
 
-- [`vampPlugins`](http://ebaker.me.uk/ReVAMP/reference/vampPlugins.md) -
+- [`vampPlugins`](http://revamp.ebaker.me.uk/reference/vampPlugins.md) -
   List all available Vamp plugins
 
-- [`runPlugin`](http://ebaker.me.uk/ReVAMP/reference/runPlugin.md) -
+- [`runPlugin`](http://revamp.ebaker.me.uk/reference/runPlugin.md) -
   Execute a plugin on audio data
 
-- [`install_vamp_plugins`](http://ebaker.me.uk/ReVAMP/reference/install_vamp_plugins.md) -
+- [`install_vamp_plugins`](http://revamp.ebaker.me.uk/reference/install_vamp_plugins.md) -
   Install plugins from online sources
 
 See the individual function documentation for usage examples.
@@ -39,9 +39,9 @@ Multimedia (pp. 1467-1468).
 
 ## See also
 
-[`vampPlugins`](http://ebaker.me.uk/ReVAMP/reference/vampPlugins.md),
-[`runPlugin`](http://ebaker.me.uk/ReVAMP/reference/runPlugin.md),
-[`vampInfo`](http://ebaker.me.uk/ReVAMP/reference/vampInfo.md)
+[`vampPlugins`](http://revamp.ebaker.me.uk/reference/vampPlugins.md),
+[`runPlugin`](http://revamp.ebaker.me.uk/reference/runPlugin.md),
+[`vampInfo`](http://revamp.ebaker.me.uk/reference/vampInfo.md)
 
 ## Examples
 

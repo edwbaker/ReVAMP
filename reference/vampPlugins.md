@@ -68,7 +68,7 @@ A data frame with one row per plugin and columns including:
 
 ## See also
 
-[`vampParams`](http://ebaker.me.uk/ReVAMP/reference/vampParams.md) to
+[`vampParams`](http://revamp.ebaker.me.uk/reference/vampParams.md) to
 get parameter information for a specific plugin
 
 ## Examples

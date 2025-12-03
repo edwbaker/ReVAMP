@@ -30,7 +30,7 @@ runPlugin(myname, soname, id, output, outputNo, wave, outfilename, useFrames)
 
   Character string specifying which plugin output to use. Plugins may
   provide multiple output types. Use
-  [`vampPlugins`](http://ebaker.me.uk/ReVAMP/reference/vampPlugins.md)
+  [`vampPlugins`](http://revamp.ebaker.me.uk/reference/vampPlugins.md)
   to see available outputs.
 
 - outputNo:
@@ -87,9 +87,9 @@ The function supports all three Vamp output sample types:
 
 ## See also
 
-[`vampPlugins`](http://ebaker.me.uk/ReVAMP/reference/vampPlugins.md) to
+[`vampPlugins`](http://revamp.ebaker.me.uk/reference/vampPlugins.md) to
 list available plugins,
-[`vampParams`](http://ebaker.me.uk/ReVAMP/reference/vampParams.md) to
+[`vampParams`](http://revamp.ebaker.me.uk/reference/vampParams.md) to
 get plugin parameters
 
 ## Examples
