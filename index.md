@@ -33,7 +33,7 @@ install.packages("path/to/ReVAMP_1.0.tar.gz", repos = NULL, type = "source")
 Or install with devtools:
 
 ``` r
-devtools::install_github("yourusername/ReVAMP")  # Update with actual repo
+devtools::install_github("edwbaker/ReVAMP")  # Update with actual repo
 ```
 
 ## Installing Vamp Plugins
