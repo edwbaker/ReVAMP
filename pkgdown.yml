@@ -1,0 +1,8 @@
+pandoc: 3.1.11
+pkgdown: 2.2.0
+pkgdown_sha: ~
+articles: {}
+last_built: 2025-12-03T13:14Z
+urls:
+  reference: http://ebaker.me.uk/ReVAMP/reference
+  article: http://ebaker.me.uk/ReVAMP/articles
