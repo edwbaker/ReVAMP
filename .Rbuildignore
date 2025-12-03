@@ -1,0 +1,24 @@
+^renv$
+^renv\.lock$
+^.*\.Rproj$
+^\.Rproj\.user$
+^\.git$
+^\.github$
+^\.vscode$
+^\.RData$
+^\.Rhistory$
+^\.Rprofile$
+^\.gitignore$
+^test\.R$
+^sweep\.wav$
+^.*\.csv$
+^out\.file$
+^out 2\.file$
+^README\.md$
+^LICENSE\.md$
+src/*.o
+src/*.dll
+src/*.so
+^inst/vamp/\.appveyor\.yml$
+^inst/vamp/\.hg_archival\.txt$
+^inst/vamp/\.travis\.yml$

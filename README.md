@@ -1,0 +1,225 @@
+# ReVAMP - R Interface to Vamp Audio Analysis Plugins
+
+<!-- badges: start -->
+
+<!-- badges: end -->
+
+ReVAMP provides an R interface to the [Vamp audio analysis plugin system](https://www.vamp-plugins.org/) developed by Queen Mary University of London's Centre for Digital Music. It enables R users to load and run Vamp plugins for Music Information Retrieval (MIR) tasks like tempo detection, onset detection, spectral analysis, and feature extraction.
+
+## Features
+
+-   **Comprehensive Plugin Support**: Access to 100+ Vamp plugins for audio analysis
+-   **Automatic Adaptation**: Handles channel mixing, domain conversion, and buffering automatically
+-   **Three Output Sample Types**: OneSamplePerStep, FixedSampleRate, and VariableSampleRate
+-   **Data Frame Output**: Results returned as R data frames for easy analysis and visualization
+-   **Optional File Export**: Optionally write results to CSV files
+
+## Installation
+
+Install from source:
+
+``` r
+# Install dependencies
+install.packages(c("Rcpp", "tuneR"))
+
+# Install ReVAMP
+install.packages("path/to/ReVAMP_1.0.tar.gz", repos = NULL, type = "source")
+```
+
+Or install with devtools:
+
+``` r
+devtools::install_github("yourusername/ReVAMP")  # Update with actual repo
+```
+
+## Installing Vamp Plugins
+
+ReVAMP requires external Vamp plugins to be installed. Use the built-in installation function:
+
+``` r
+library(ReVAMP)
+
+# List available plugins for download
+list_available_plugins()
+
+# Install to user directory (no admin required)
+install_vamp_plugins("vamp-aubio-plugins", user_dir = TRUE)
+
+# Verify installation
+plugins <- vampPlugins()
+head(plugins)
+```
+
+**Plugin Directories:** - **Windows**: `%USERPROFILE%\Vamp Plugins` (user) or `C:\Program Files\Vamp Plugins` (system) - **macOS**: `~/Library/Audio/Plug-Ins/Vamp` (user) or `/Library/Audio/Plug-Ins/Vamp` (system) - **Linux**: `~/.vamp` (user) or `/usr/lib/vamp` (system)
+
+## Quick Start
+
+``` r
+library(ReVAMP)
+library(tuneR)
+
+# Load audio file
+audio <- readWave("myaudio.wav")
+
+# Run amplitude follower and get results as data frame
+result <- runPlugin(
+  myname = "analysis",
+  soname = "vamp-example-plugins",
+  id = "amplitudefollower",
+  output = "amplitude",
+  outputNo = 0,
+  wave = audio,
+  outfilename = "",  # Empty string = no file output
+  useFrames = FALSE  # Use timestamps in seconds
+)
+
+# Examine results
+str(result)
+#> 'data.frame':    1292 obs. of  4 variables:
+#>  $ timestamp: num  0.000 0.023 0.046 0.070 0.093 ...
+#>  $ duration : num  NA NA NA NA NA NA NA NA NA NA ...
+#>  $ value    : num  22866 22896 22735 22531 22380 ...
+#>  $ label    : chr  "" "" "" "" ...
+
+# Plot amplitude over time
+plot(result$timestamp, result$value, type = "l",
+     xlab = "Time (s)", ylab = "Amplitude",
+     main = "Audio Amplitude")
+```
+
+## Common Use Cases
+
+### Onset Detection
+
+Detect note onsets in audio:
+
+``` r
+onsets <- runPlugin(
+  myname = "analysis",
+  soname = "vamp-aubio-plugins",
+  id = "aubioonset",
+  output = "onsets",
+  outputNo = 0,
+  wave = audio,
+  outfilename = "",
+  useFrames = FALSE
+)
+
+# View onset times
+print(onsets$timestamp)
+
+# Plot onsets on waveform
+plot(audio)
+abline(v = onsets$timestamp * audio@samp.rate, col = "red", lty = 2)
+```
+
+### Tempo Detection
+
+Estimate tempo (BPM):
+
+``` r
+tempo <- runPlugin(
+  myname = "analysis",
+  soname = "vamp-aubio-plugins",
+  id = "aubiotempo",
+  output = "tempo",
+  outputNo = 0,
+  wave = audio,
+  outfilename = "",
+  useFrames = FALSE
+)
+
+cat("Estimated tempo:", mean(tempo$value), "BPM\n")
+```
+
+### Spectral Centroid
+
+Analyze spectral characteristics:
+
+``` r
+centroid <- runPlugin(
+  myname = "analysis",
+  soname = "vamp-example-plugins",
+  id = "spectralcentroid",
+  output = "logcentroid",
+  outputNo = 0,
+  wave = audio,
+  outfilename = "",
+  useFrames = FALSE
+)
+
+plot(centroid$timestamp, centroid$value, type = "l",
+     xlab = "Time (s)", ylab = "Log Centroid",
+     main = "Spectral Centroid Over Time")
+```
+
+## Package Information
+
+``` r
+# Get Vamp API/SDK version info
+vampInfo()
+
+# List plugin search paths
+vampPaths()
+
+# List all installed plugins with details
+plugins <- vampPlugins()
+View(plugins)
+
+# Get parameters for a specific plugin
+params <- vampParams("vamp-aubio-plugins:aubioonset")
+View(params)
+```
+
+## Architecture
+
+ReVAMP consists of three layers:
+
+1.  **Vamp Plugin SDK** (`inst/vamp/`): C++ libraries defining the Vamp plugin interface
+2.  **Vamp Host SDK** (`src/Plugin*.cpp`): C++ host implementation that loads and manages plugins
+3.  **R Interface** (`src/R_host.cpp`): Rcpp bindings exposing functionality to R
+
+Key features: - **PluginLoader**: Discovers and loads Vamp plugins from system directories - **Plugin Adapters**: Automatically handle channel mixing, domain conversion (time/frequency), and buffering - **DataFrame Output**: Collects features in memory and returns structured data to R
+
+## Audio Data Flow
+
+1.  **Input**: `tuneR::Wave` S4 objects from R
+2.  **Conversion**: Extracted to float buffers in C++
+3.  **Processing**: Fed block-by-block to Vamp plugins with automatic adaptation
+4.  **Output**: Collected in memory and returned as DataFrame to R
+5.  **Optional File**: Can also write to CSV file if `outfilename` is provided
+
+## Development
+
+The package uses standard R/Rcpp development tools:
+
+``` r
+library(devtools)
+
+# Make changes to code...
+
+# Regenerate documentation
+roxygen2::roxygenise()
+
+# Install locally
+install()
+
+# Run tests
+test()
+
+# Run R CMD check
+check()
+```
+
+## References
+
+-   **Vamp Plugins**: <https://www.vamp-plugins.org/>
+-   Cannam, C., Landone, C., & Sandler, M. (2010). Sonic Visualiser: An open source application for viewing, analysing, and annotating music audio files. *Proceedings of the 18th ACM International Conference on Multimedia*, 1467-1468.
+
+## License
+
+GPL (\>= 2)
+
+## Author
+
+Your Name [your\@email.com](mailto:your@email.com){.email}

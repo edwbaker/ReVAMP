@@ -1,0 +1,24 @@
+Package: ReVAMP
+Type: Package
+Title: R Interface to Vamp Audio Analysis Plugins
+Version: 1.0
+Date: 2025-12-03
+Author: Ed Baker
+Maintainer: Ed Baker <ed@ebaker.me.uk>
+Description: Provides an R interface to the Vamp audio analysis plugin system
+    developed by Queen Mary University of London's Centre for Digital Music.
+    Enables loading and running Vamp plugins for Music Information Retrieval (MIR)
+    tasks including tempo detection, onset detection, spectral analysis, and
+    audio feature extraction. Supports mono and stereo audio with automatic
+    channel adaptation and domain conversion.
+License: GPL (>= 2)
+Imports: 
+    Rcpp
+LinkingTo: Rcpp
+Suggests: 
+    testthat (>= 3.0.0),
+    tuneR
+Config/testthat/edition: 3
+Roxygen: list(markdown = TRUE)
+RoxygenNote: 7.3.3
+Encoding: UTF-8
