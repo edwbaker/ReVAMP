@@ -22,3 +22,6 @@ src/*.so
 ^inst/vamp/\.appveyor\.yml$
 ^inst/vamp/\.hg_archival\.txt$
 ^inst/vamp/\.travis\.yml$
+^_pkgdown\.yml$
+^docs$
+^pkgdown$
