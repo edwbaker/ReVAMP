@@ -1,4 +1,4 @@
-# ReVAMP - R Interface to Vamp Audio Analysis Plugins
+# ReVAMP - R Interface to Vamp Audio Analysis Plugins <a href="http://revamp.ebaker.me.uk/"><img src="man/figures/logo.png" alt="ReVAMP website" align="right" height="120"/></a>
 
 <!-- badges: start -->
 
