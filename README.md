@@ -39,9 +39,6 @@ sudo apt-get install libsndfile1-dev
 sudo dnf install libsndfile-devel
 ```
 
-**Windows:**
-The package includes the necessary binaries.
-
 ### Install R Package
 
 Install from source:

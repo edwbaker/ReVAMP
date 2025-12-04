@@ -18,7 +18,7 @@ audio analysis plugins. Key functions include:
 \itemize{
   \item \code{\link{vampPlugins}} - List all available Vamp plugins
   \item \code{\link{runPlugin}} - Execute a plugin on audio data
-  \item \code{\link{vampParams}} - Get plugin parameter information
+  \item \code{\link{vampPluginParams}} - Get plugin parameter information
   \item \code{\link{vampPaths}} - List plugin search paths
   \item \code{\link{vampInfo}} - Get Vamp SDK version information
 }

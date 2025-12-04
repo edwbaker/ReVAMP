@@ -1,0 +1,103 @@
+#!/bin/sh
+
+# Configure script for ReVAMP package
+# Detects libsndfile and sets appropriate compiler flags
+
+echo "Checking for libsndfile..."
+
+# Initialize variables
+SNDFILE_CFLAGS=""
+SNDFILE_LIBS="-lsndfile"
+
+# Detect platform
+case "$(uname -s)" in
+  Darwin*)
+    # macOS
+    echo "macOS detected"
+    
+    # Try pkg-config first
+    if command -v pkg-config >/dev/null 2>&1; then
+      if pkg-config --exists sndfile 2>/dev/null; then
+        SNDFILE_CFLAGS=$(pkg-config --cflags sndfile)
+        SNDFILE_LIBS=$(pkg-config --libs sndfile)
+        echo "Found libsndfile via pkg-config"
+      fi
+    fi
+    
+    # If pkg-config didn't work, try Homebrew
+    if [ -z "$SNDFILE_CFLAGS" ]; then
+      if command -v brew >/dev/null 2>&1; then
+        BREW_PREFIX=$(brew --prefix 2>/dev/null)
+        if [ -f "$BREW_PREFIX/include/sndfile.h" ]; then
+          SNDFILE_CFLAGS="-I$BREW_PREFIX/include"
+          SNDFILE_LIBS="-L$BREW_PREFIX/lib -lsndfile"
+          echo "Found libsndfile via Homebrew at $BREW_PREFIX"
+        fi
+      fi
+    fi
+    
+    # Try MacPorts
+    if [ -z "$SNDFILE_CFLAGS" ] && [ -f "/opt/local/include/sndfile.h" ]; then
+      SNDFILE_CFLAGS="-I/opt/local/include"
+      SNDFILE_LIBS="-L/opt/local/lib -lsndfile"
+      echo "Found libsndfile via MacPorts"
+    fi
+    
+    # Check if we found it
+    if [ -z "$SNDFILE_CFLAGS" ]; then
+      echo ""
+      echo "ERROR: libsndfile not found."
+      echo "Please install libsndfile:"
+      echo "  brew install libsndfile"
+      echo "or"
+      echo "  sudo port install libsndfile"
+      exit 1
+    fi
+    ;;
+    
+  Linux*)
+    # Linux
+    echo "Linux detected"
+    
+    # Try pkg-config
+    if command -v pkg-config >/dev/null 2>&1; then
+      if pkg-config --exists sndfile 2>/dev/null; then
+        SNDFILE_CFLAGS=$(pkg-config --cflags sndfile)
+        SNDFILE_LIBS=$(pkg-config --libs sndfile)
+        echo "Found libsndfile via pkg-config"
+      else
+        echo ""
+        echo "ERROR: libsndfile not found."
+        echo "Please install libsndfile development package:"
+        echo "  Ubuntu/Debian: sudo apt-get install libsndfile1-dev"
+        echo "  Fedora/RHEL:   sudo dnf install libsndfile-devel"
+        exit 1
+      fi
+    else
+      # Assume standard system paths
+      echo "pkg-config not found, using default flags"
+      SNDFILE_LIBS="-lsndfile"
+    fi
+    ;;
+    
+  *)
+    # Other Unix-like systems
+    echo "Unix-like system detected"
+    if command -v pkg-config >/dev/null 2>&1; then
+      if pkg-config --exists sndfile 2>/dev/null; then
+        SNDFILE_CFLAGS=$(pkg-config --cflags sndfile)
+        SNDFILE_LIBS=$(pkg-config --libs sndfile)
+        echo "Found libsndfile via pkg-config"
+      fi
+    fi
+    ;;
+esac
+
+# Create src/Makevars from src/Makevars.in
+echo "Creating src/Makevars"
+sed -e "s|@SNDFILE_CFLAGS@|${SNDFILE_CFLAGS}|" \
+    -e "s|@SNDFILE_LIBS@|${SNDFILE_LIBS}|" \
+    src/Makevars.in > src/Makevars
+
+echo "Configuration complete"
+exit 0
