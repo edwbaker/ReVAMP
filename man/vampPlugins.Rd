@@ -39,5 +39,5 @@ aubio_plugins <- plugins[plugins$library == "vamp-aubio-plugins", ]
 }
 }
 \seealso{
-\code{\link{vampParams}} to get parameter information for a specific plugin
+\code{\link{vampPluginParams}} to get parameter information for a specific plugin
 }

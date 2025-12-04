@@ -27,7 +27,7 @@ test_that("vampPlugins library names are correctly parsed", {
   }
 })
 
-test_that("vampParams returns plugin parameter information", {
+test_that("vampPluginParams returns plugin parameter information", {
   skip_if_not(length(vampPaths()) > 0, "No Vamp plugin paths available")
   
   plugins <- vampPlugins()
@@ -35,7 +35,7 @@ test_that("vampParams returns plugin parameter information", {
   
   # Test with first available plugin - use id column
   first_key <- plugins$id[1]
-  params <- vampParams(first_key)
+  params <- vampPluginParams(first_key)
   
   expect_s3_class(params, "data.frame")
   # Params might be empty if plugin has no parameters

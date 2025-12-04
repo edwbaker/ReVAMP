@@ -13,12 +13,12 @@ vampPlugins <- function() {
     .Call(`_ReVAMP_vampPlugins`)
 }
 
-vampParams <- function(key) {
-    .Call(`_ReVAMP_vampParams`, key)
+vampPluginParams <- function(key) {
+    .Call(`_ReVAMP_vampPluginParams`, key)
 }
 
-runPlugin <- function(key, wave, outfilename, useFrames) {
-    .Call(`_ReVAMP_runPlugin`, key, wave, outfilename, useFrames)
+runPlugin <- function(key, wave, params = NULL, useFrames = FALSE) {
+    .Call(`_ReVAMP_runPlugin`, key, wave, params, useFrames)
 }
 
 rcpp_type <- function(x) {

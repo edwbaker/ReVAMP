@@ -40,28 +40,28 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
-// vampParams
-DataFrame vampParams(std::string key);
-RcppExport SEXP _ReVAMP_vampParams(SEXP keySEXP) {
+// vampPluginParams
+DataFrame vampPluginParams(std::string key);
+RcppExport SEXP _ReVAMP_vampPluginParams(SEXP keySEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< std::string >::type key(keySEXP);
-    rcpp_result_gen = Rcpp::wrap(vampParams(key));
+    rcpp_result_gen = Rcpp::wrap(vampPluginParams(key));
     return rcpp_result_gen;
 END_RCPP
 }
 // runPlugin
-List runPlugin(std::string key, S4 wave, std::string outfilename, bool useFrames);
-RcppExport SEXP _ReVAMP_runPlugin(SEXP keySEXP, SEXP waveSEXP, SEXP outfilenameSEXP, SEXP useFramesSEXP) {
+List runPlugin(std::string key, S4 wave, Nullable<List> params, bool useFrames);
+RcppExport SEXP _ReVAMP_runPlugin(SEXP keySEXP, SEXP waveSEXP, SEXP paramsSEXP, SEXP useFramesSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< std::string >::type key(keySEXP);
     Rcpp::traits::input_parameter< S4 >::type wave(waveSEXP);
-    Rcpp::traits::input_parameter< std::string >::type outfilename(outfilenameSEXP);
+    Rcpp::traits::input_parameter< Nullable<List> >::type params(paramsSEXP);
     Rcpp::traits::input_parameter< bool >::type useFrames(useFramesSEXP);
-    rcpp_result_gen = Rcpp::wrap(runPlugin(key, wave, outfilename, useFrames));
+    rcpp_result_gen = Rcpp::wrap(runPlugin(key, wave, params, useFrames));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -80,7 +80,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_ReVAMP_vampInfo", (DL_FUNC) &_ReVAMP_vampInfo, 0},
     {"_ReVAMP_vampPaths", (DL_FUNC) &_ReVAMP_vampPaths, 0},
     {"_ReVAMP_vampPlugins", (DL_FUNC) &_ReVAMP_vampPlugins, 0},
-    {"_ReVAMP_vampParams", (DL_FUNC) &_ReVAMP_vampParams, 1},
+    {"_ReVAMP_vampPluginParams", (DL_FUNC) &_ReVAMP_vampPluginParams, 1},
     {"_ReVAMP_runPlugin", (DL_FUNC) &_ReVAMP_runPlugin, 4},
     {"_ReVAMP_rcpp_type", (DL_FUNC) &_ReVAMP_rcpp_type, 1},
     {NULL, NULL, 0}

@@ -21,25 +21,25 @@ test_that("runPlugin executes with valid inputs", {
   example_plugins <- plugins[plugins$library == "vamp-example-plugins", ]
   skip_if(nrow(example_plugins) == 0, "vamp-example-plugins not installed")
   
-  amp_follower <- example_plugins[example_plugins$plugin == "amplitudefollower", ]
+  amp_follower <- example_plugins[grepl("amplitudefollower", example_plugins$id), ]
   skip_if(nrow(amp_follower) == 0, "amplitudefollower plugin not found")
   
   # Create test wave
   test_wave <- create_test_wave(duration = 0.5)
   
-  # Create temporary output file
-  output_file <- tempfile(fileext = ".csv")
-  on.exit(unlink(output_file), add = TRUE)
-  
   # Run plugin
   expect_silent({
-    result <- runPlugin("test_user", "vamp-example-plugins", "amplitudefollower",
-                       "amplitude", 0, test_wave, output_file, TRUE)
+    result <- runPlugin(
+      key = "vamp-example-plugins:amplitudefollower",
+      wave = test_wave,
+      params = NULL,
+      useFrames = TRUE
+    )
   })
   
-  # Check output file was created
-  expect_true(file.exists(output_file))
-  expect_true(file.size(output_file) > 0)
+  # Check result structure
+  expect_type(result, "list")
+  expect_true(length(result) > 0)
 })
 
 test_that("runPlugin handles mono audio", {
@@ -53,15 +53,18 @@ test_that("runPlugin handles mono audio", {
   
   # Create mono test wave
   test_wave <- create_test_wave(duration = 0.25)
-  output_file <- tempfile(fileext = ".csv")
-  on.exit(unlink(output_file), add = TRUE)
   
   expect_silent({
-    result <- runPlugin("test_user", "vamp-example-plugins", "amplitudefollower",
-                       "amplitude", 0, test_wave, output_file, TRUE)
+    result <- runPlugin(
+      key = "vamp-example-plugins:amplitudefollower",
+      wave = test_wave,
+      params = NULL,
+      useFrames = TRUE
+    )
   })
   
-  expect_true(file.exists(output_file))
+  expect_type(result, "list")
+  expect_true(length(result) > 0)
 })
 
 test_that("runPlugin handles stereo audio", {
@@ -81,15 +84,17 @@ test_that("runPlugin handles stereo audio", {
   test_wave <- Wave(left = left_signal, right = right_signal, 
                     samp.rate = 44100, bit = 16)
   
-  output_file <- tempfile(fileext = ".csv")
-  on.exit(unlink(output_file), add = TRUE)
-  
   expect_silent({
-    result <- runPlugin("test_user", "vamp-example-plugins", "amplitudefollower",
-                       "amplitude", 0, test_wave, output_file, TRUE)
+    result <- runPlugin(
+      key = "vamp-example-plugins:amplitudefollower",
+      wave = test_wave,
+      params = NULL,
+      useFrames = TRUE
+    )
   })
   
-  expect_true(file.exists(output_file))
+  expect_type(result, "list")
+  expect_true(length(result) > 0)
 })
 
 test_that("runPlugin handles different output sample types", {
@@ -103,38 +108,42 @@ test_that("runPlugin handles different output sample types", {
   # Test OneSamplePerStep (amplitudefollower)
   example_plugins <- plugins[plugins$library == "vamp-example-plugins", ]
   if (nrow(example_plugins) > 0 && 
-      "amplitudefollower" %in% example_plugins$plugin) {
-    output_file <- tempfile(fileext = ".csv")
-    on.exit(unlink(output_file), add = TRUE)
-    
+      any(grepl("amplitudefollower", example_plugins$id))) {
     expect_silent({
-      runPlugin("test", "vamp-example-plugins", "amplitudefollower",
-                "amplitude", 0, test_wave, output_file, TRUE)
+      result <- runPlugin(
+        key = "vamp-example-plugins:amplitudefollower",
+        wave = test_wave,
+        params = NULL,
+        useFrames = TRUE
+      )
     })
-    expect_true(file.exists(output_file))
+    expect_type(result, "list")
   }
   
   # Test VariableSampleRate (percussiononsets if available)
   if (nrow(example_plugins) > 0 && 
-      "percussiononsets" %in% example_plugins$plugin) {
-    output_file2 <- tempfile(fileext = ".csv")
-    on.exit(unlink(output_file2), add = TRUE)
-    
+      any(grepl("percussiononsets", example_plugins$id))) {
     expect_silent({
-      runPlugin("test", "vamp-example-plugins", "percussiononsets",
-                "onsets", 0, test_wave, output_file2, TRUE)
+      result <- runPlugin(
+        key = "vamp-example-plugins:percussiononsets",
+        wave = test_wave,
+        params = NULL,
+        useFrames = TRUE
+      )
     })
-    expect_true(file.exists(output_file2))
+    expect_type(result, "list")
   }
 })
 
 test_that("runPlugin fails gracefully with invalid plugin", {
   test_wave <- create_test_wave(duration = 0.1)
-  output_file <- tempfile(fileext = ".csv")
-  on.exit(unlink(output_file), add = TRUE)
   
   expect_error({
-    runPlugin("test", "nonexistent-plugin", "fake-id",
-              "output", 0, test_wave, output_file, TRUE)
+    runPlugin(
+      key = "nonexistent-plugin:fake-id",
+      wave = test_wave,
+      params = NULL,
+      useFrames = TRUE
+    )
   })
 })

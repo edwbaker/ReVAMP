@@ -5,7 +5,6 @@
 #include <cstdlib>
 #include <cmath>
 #include <iostream>
-#include <fstream>
 #include <set>
 #include <sndfile.h>
 
@@ -41,84 +40,6 @@ struct FeatureData {
   
   FeatureData() : numValueCols(0) {}
 };
-
-void printFeatures(int frame, int sr,
-                const Plugin::OutputDescriptor &output, int outputNo,
-                const Plugin::FeatureSet &features, std::ofstream *out, bool useFrames)
-{
-  if (!out) return;
-  
-  // Track time for FixedSampleRate outputs with implicit timestamps
-  static std::map<int, RealTime> lastFeatureTime;
-  
-  for (Plugin::FeatureSet::const_iterator fi = features.begin(); fi != features.end(); ++fi) {
-    if (fi->first != outputNo) continue;
-    
-    for (Plugin::FeatureList::const_iterator fli = fi->second.begin(); fli != fi->second.end(); ++fli) {
-      
-      RealTime featureTime;
-      
-      // Handle timestamp according to output sample type
-      if (output.sampleType == Plugin::OutputDescriptor::OneSamplePerStep) {
-        // OneSamplePerStep: Always use the frame from process() call
-        // Never read feature timestamp, even if erroneously set
-        featureTime = RealTime::frame2RealTime(frame, sr);
-        
-      } else if (output.sampleType == Plugin::OutputDescriptor::FixedSampleRate) {
-        // FixedSampleRate: Check hasTimestamp
-        if (fli->hasTimestamp) {
-          // Explicit timestamp provided
-          featureTime = fli->timestamp;
-          lastFeatureTime[outputNo] = featureTime;
-        } else {
-          // Implicit timestamp: increment from previous feature
-          if (lastFeatureTime.find(outputNo) != lastFeatureTime.end()) {
-            // Calculate time increment from sample rate
-            int increment_ns = (int)((1000000000.0 / output.sampleRate) + 0.5);
-            featureTime = lastFeatureTime[outputNo] + RealTime(0, increment_ns);
-          } else {
-            // First feature with no explicit timestamp
-            featureTime = RealTime::frame2RealTime(frame, sr);
-          }
-          lastFeatureTime[outputNo] = featureTime;
-        }
-        
-      } else { // VariableSampleRate
-        // VariableSampleRate: Must always have explicit timestamp
-        if (fli->hasTimestamp) {
-          featureTime = fli->timestamp;
-        } else {
-          // Should not happen, but fall back to frame time
-          featureTime = RealTime::frame2RealTime(frame, sr);
-        }
-      }
-      
-      // Output timestamp
-      if (useFrames) {
-        *out << RealTime::realTime2Frame(featureTime, sr);
-      } else {
-        *out << toSeconds(const_cast<RealTime&>(featureTime));
-      }
-      
-      // Duration
-      if (fli->hasDuration) {
-        *out << "," << toSeconds(const_cast<RealTime&>(fli->duration));
-      }
-      
-      // Values
-      for (size_t j = 0; j < fli->values.size(); ++j) {
-        *out << "," << fli->values[j];
-      }
-      
-      // Label
-      if (fli->label != "") {
-        *out << "," << fli->label;
-      }
-      
-      *out << endl;
-    }
-  }
-}
 
 // Collect features in memory for ALL outputs
 void collectAllFeatures(int frame, int sr,
@@ -374,7 +295,7 @@ DataFrame vampPlugins() {
 }
 
 // [[Rcpp::export]]
-DataFrame vampParams(std::string key) {
+DataFrame vampPluginParams(std::string key) {
   PluginLoader *loader = PluginLoader::getInstance();
   Plugin *plugin = loader->loadPlugin(key, 48000);
   Plugin::ParameterList params = plugin->getParameterDescriptors();
@@ -422,7 +343,7 @@ DataFrame vampParams(std::string key) {
 }
 
 // [[Rcpp::export]]
-List runPlugin(std::string key, S4 wave, std::string outfilename, bool useFrames)
+List runPlugin(std::string key, S4 wave, Nullable<List> params = R_NilValue, bool useFrames = false)
 {
   PluginLoader *loader = PluginLoader::getInstance();
   
@@ -465,22 +386,9 @@ List runPlugin(std::string key, S4 wave, std::string outfilename, bool useFrames
   
   sfinfo.channels = is_stereo ? 2 : 1;
   
-  ofstream *out = 0;
-  if (outfilename != "") {
-    out = new ofstream(outfilename.c_str(), ios::out);
-    if (!*out) {
-      delete out;
-      Rcpp::stop("Failed to open output file '" + outfilename + "' for writing");
-    }
-  }
-  
   Plugin *plugin = loader->loadPlugin
     (pluginKey, sfinfo.samplerate, PluginLoader::ADAPT_ALL_SAFE);
   if (!plugin) {
-    if (out) {
-      out->close();
-      delete out;
-    }
     Rcpp::stop("Failed to load plugin '" + key + "'");
   }
   
@@ -562,6 +470,24 @@ List runPlugin(std::string key, S4 wave, std::string outfilename, bool useFrames
   }
   
   Rcpp::Rcerr << "Plugin has " << outputs.size() << " output(s)" << endl;
+  
+  // Set plugin parameters if provided
+  if (params.isNotNull()) {
+    List paramList(params);
+    CharacterVector paramNames = paramList.names();
+    
+    for (int i = 0; i < paramList.size(); i++) {
+      std::string paramId = Rcpp::as<std::string>(paramNames[i]);
+      float paramValue = Rcpp::as<float>(paramList[i]);
+      
+      try {
+        plugin->setParameter(paramId, paramValue);
+        Rcpp::Rcerr << "Set parameter '" << paramId << "' = " << paramValue << endl;
+      } catch (std::exception &e) {
+        Rcpp::Rcerr << "WARNING: Failed to set parameter '" << paramId << "': " << e.what() << endl;
+      }
+    }
+  }
   
   if (!plugin->initialise(channels, stepSize, blockSize)) {
     Rcpp::Rcerr << "ERROR: Plugin initialise (channels = " << channels
@@ -693,10 +619,6 @@ List runPlugin(std::string key, S4 wave, std::string outfilename, bool useFrames
   
   done:
     delete plugin;
-  if (out) {
-    out->close();
-    delete out;
-  }
   
   // Build and return List of DataFrames (one per output)
   if (returnValue != 0) {

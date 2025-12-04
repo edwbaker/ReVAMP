@@ -69,24 +69,27 @@ test_that("all installed plugins can be executed", {
     cat("  Testing with mono audio...\n")
     result_mono <- tryCatch({
       output <- runPlugin(
-        myname = "test",
-        soname = plugin_lib,
-        id = plugin_identifier,
-        output = "",
-        outputNo = 0,
+        key = plugin_id,
         wave = test_wave_mono,
-        outfilename = "",
+        params = NULL,
         useFrames = TRUE
       )
       
-      expect_s3_class(output, "data.frame")
-      expect_true("timestamp" %in% names(output),
+      # Output is now a list of data frames
+      expect_type(output, "list")
+      expect_true(length(output) > 0,
+                 label = sprintf("Plugin %s returned no outputs", plugin_id))
+      
+      # Get first output for testing
+      first_output <- output[[1]]
+      expect_s3_class(first_output, "data.frame")
+      expect_true("timestamp" %in% names(first_output),
                  label = sprintf("Plugin %s output missing 'timestamp' column", plugin_id))
       
       list(
         success = TRUE,
         error_msg = "",
-        num_features = nrow(output)
+        num_features = nrow(first_output)
       )
       
     }, error = function(e) {
@@ -113,24 +116,27 @@ test_that("all installed plugins can be executed", {
       cat("  Testing with stereo audio...\n")
       result_stereo <- tryCatch({
         output <- runPlugin(
-          myname = "test",
-          soname = plugin_lib,
-          id = plugin_identifier,
-          output = "",
-          outputNo = 0,
+          key = plugin_id,
           wave = test_wave_stereo,
-          outfilename = "",
+          params = NULL,
           useFrames = TRUE
         )
         
-        expect_s3_class(output, "data.frame")
-        expect_true("timestamp" %in% names(output),
+        # Output is now a list of data frames
+        expect_type(output, "list")
+        expect_true(length(output) > 0,
+                   label = sprintf("Plugin %s returned no outputs", plugin_id))
+        
+        # Get first output for testing
+        first_output <- output[[1]]
+        expect_s3_class(first_output, "data.frame")
+        expect_true("timestamp" %in% names(first_output),
                    label = sprintf("Plugin %s stereo output missing 'timestamp' column", plugin_id))
         
         list(
           success = TRUE,
           error_msg = "",
-          num_features = nrow(output)
+          num_features = nrow(first_output)
         )
         
       }, error = function(e) {
@@ -233,37 +239,38 @@ test_that("plugin output structure is consistent", {
   )
   
   output <- runPlugin(
-    myname = "test",
-    soname = "vamp-example-plugins",
-    id = "amplitudefollower",
-    output = "amplitude",
-    outputNo = 0,
+    key = "vamp-example-plugins:amplitudefollower",
     wave = test_wave,
-    outfilename = "",
+    params = NULL,
     useFrames = FALSE
   )
   
-  # Check structure
-  expect_s3_class(output, "data.frame")
-  expect_true("timestamp" %in% names(output))
-  expect_true("duration" %in% names(output))
-  expect_true("label" %in% names(output))
-  expect_true(any(grepl("^value", names(output))))
+  # Check structure - output is now a list
+  expect_type(output, "list")
+  expect_true(length(output) > 0)
+  
+  # Get first output
+  first_output <- output[[1]]
+  expect_s3_class(first_output, "data.frame")
+  expect_true("timestamp" %in% names(first_output))
+  expect_true("duration" %in% names(first_output))
+  expect_true("label" %in% names(first_output))
+  expect_true(any(grepl("^value", names(first_output))))
   
   # Check data types
-  expect_type(output$timestamp, "double")
-  expect_type(output$duration, "double")
-  expect_type(output$label, "character")
+  expect_type(first_output$timestamp, "double")
+  expect_type(first_output$duration, "double")
+  expect_type(first_output$label, "character")
   
   # Check that timestamps are monotonic increasing
-  if (nrow(output) > 1) {
-    expect_true(all(diff(output$timestamp) >= 0),
+  if (nrow(first_output) > 1) {
+    expect_true(all(diff(first_output$timestamp) >= 0),
                label = "Timestamps are not monotonic increasing")
   }
   
   # Check for reasonable timestamp values (0 to duration)
-  expect_gte(min(output$timestamp), 0)
-  expect_lte(max(output$timestamp), duration * 1.1)  # Allow 10% overshoot
+  expect_gte(min(first_output$timestamp), 0)
+  expect_lte(max(first_output$timestamp), duration * 1.1)  # Allow 10% overshoot
 })
 
 test_that("plugins work with stereo audio", {
@@ -287,16 +294,16 @@ test_that("plugins work with stereo audio", {
   )
   
   output <- runPlugin(
-    myname = "test",
-    soname = "vamp-example-plugins",
-    id = "amplitudefollower",
-    output = "amplitude",
-    outputNo = 0,
+    key = "vamp-example-plugins:amplitudefollower",
     wave = stereo_wave,
-    outfilename = "",
+    params = NULL,
     useFrames = FALSE
   )
   
-  expect_s3_class(output, "data.frame")
-  expect_gt(nrow(output), 0)
+  expect_type(output, "list")
+  expect_true(length(output) > 0)
+  
+  first_output <- output[[1]]
+  expect_s3_class(first_output, "data.frame")
+  expect_gt(nrow(first_output), 0)
 })

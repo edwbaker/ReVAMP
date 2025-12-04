@@ -2,8 +2,8 @@
 
 export(runPlugin)
 export(vampInfo)
-export(vampParams)
 export(vampPaths)
+export(vampPluginParams)
 export(vampPlugins)
 importFrom(Rcpp,sourceCpp)
 useDynLib(ReVAMP, .registration = TRUE)

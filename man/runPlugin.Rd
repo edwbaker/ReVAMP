@@ -4,7 +4,7 @@
 \alias{runPlugin}
 \title{Run a Vamp Plugin on Audio Data}
 \usage{
-runPlugin(key, wave, outfilename = "", useFrames = FALSE)
+runPlugin(key, wave, params = NULL, useFrames = FALSE)
 }
 \arguments{
 \item{key}{Character string specifying the plugin in "library:plugin" format
@@ -14,9 +14,10 @@ Use \code{\link{vampPlugins}} to see available plugins and their keys.}
 \item{wave}{A Wave object from the \code{tuneR} package containing the audio
 data to analyze. Can be mono or stereo.}
 
-\item{outfilename}{Character string specifying the path to write output files.
-If empty string (""), no files are written. When specified, creates separate
-CSV files for each output (e.g., "output_identifier.csv"). Default is "" (no files).}
+\item{params}{Optional named list of parameter values to configure the plugin.
+Parameter names must match the parameter identifiers from \code{\link{vampPluginParams}}.
+Values will be coerced to numeric. If NULL (default), plugin default parameter
+values are used.}
 
 \item{useFrames}{Logical indicating whether to use frame numbers (TRUE) or
 timestamps (FALSE) in the output. Default is FALSE.}
@@ -61,7 +62,50 @@ The function supports all three Vamp output sample types:
 \item \strong{VariableSampleRate}: Sparse output at irregular intervals
 }
 }
+\examples{
+\dontrun{
+library(tuneR)
+
+# Load audio file
+audio <- readWave("myaudio.wav")
+
+# Run amplitude follower plugin - returns list with one output
+result <- runPlugin(
+  key = "vamp-example-plugins:amplitudefollower",
+  wave = audio
+)
+
+# Access the amplitude output
+amplitude_data <- result$amplitude
+head(amplitude_data)
+
+# Run onset detection - may return multiple outputs
+result <- runPlugin(
+  key = "vamp-aubio-plugins:aubioonset",
+  wave = audio
+)
+
+# See what outputs were produced
+names(result)
+
+# Access specific outputs
+onsets <- result$onsets
+detection_fn <- result$detection_function
+
+# Run plugin with custom parameters
+# First check what parameters are available
+params_info <- vampPluginParams("vamp-aubio-plugins:aubioonset")
+print(params_info)
+
+# Set specific parameter values
+result <- runPlugin(
+  key = "vamp-aubio-plugins:aubioonset",
+  wave = audio,
+  params = list(threshold = 0.5, silence = -70)
+)
+}
+}
 \seealso{
 \code{\link{vampPlugins}} to list available plugins,
-\code{\link{vampParams}} to get plugin parameters
+\code{\link{vampPluginParams}} to get plugin parameters
 }

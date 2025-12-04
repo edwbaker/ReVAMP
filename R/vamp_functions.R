@@ -65,7 +65,7 @@ vampPaths <- function() {
 #' # Filter for specific library
 #' aubio_plugins <- plugins[plugins$library == "vamp-aubio-plugins", ]
 #' }
-#' @seealso \code{\link{vampParams}} to get parameter information for a specific plugin
+#' @seealso \code{\link{vampPluginParams}} to get parameter information for a specific plugin
 vampPlugins <- function() {
     .Call(`_ReVAMP_vampPlugins`)
 }
@@ -94,11 +94,11 @@ vampPlugins <- function() {
 #' @examples
 #' \dontrun{
 #' # Get parameters for aubio onset detector
-#' params <- vampParams("vamp-aubio-plugins:aubioonset")
+#' params <- vampPluginParams("vamp-aubio-plugins:aubioonset")
 #' }
 #' @seealso \code{\link{vampPlugins}} to list available plugins
-vampParams <- function(key) {
-    .Call(`_ReVAMP_vampParams`, key)
+vampPluginParams <- function(key) {
+    .Call(`_ReVAMP_vampPluginParams`, key)
 }
 
 #' Run a Vamp Plugin on Audio Data
@@ -112,9 +112,10 @@ vampParams <- function(key) {
 #'   Use \code{\link{vampPlugins}} to see available plugins and their keys.
 #' @param wave A Wave object from the \code{tuneR} package containing the audio
 #'   data to analyze. Can be mono or stereo.
-#' @param outfilename Character string specifying the path to write output files.
-#'   If empty string (""), no files are written. When specified, creates separate
-#'   CSV files for each output (e.g., "output_identifier.csv"). Default is "" (no files).
+#' @param params Optional named list of parameter values to configure the plugin.
+#'   Parameter names must match the parameter identifiers from \code{\link{vampPluginParams}}.
+#'   Values will be coerced to numeric. If NULL (default), plugin default parameter
+#'   values are used.
 #' @param useFrames Logical indicating whether to use frame numbers (TRUE) or
 #'   timestamps (FALSE) in the output. Default is FALSE.
 #' @return A named list of data frames, one for each output produced by the plugin.
@@ -179,28 +180,21 @@ vampParams <- function(key) {
 #' # Access specific outputs
 #' onsets <- result$onsets
 #' detection_fn <- result$detection_function
-#' }
 #' 
-#' # Access the amplitude output
-#' amplitude_data <- result$amplitude
-#' head(amplitude_data)
+#' # Run plugin with custom parameters
+#' # First check what parameters are available
+#' params_info <- vampPluginParams("vamp-aubio-plugins:aubioonset")
+#' print(params_info)
 #' 
-#' # Run onset detection - may return multiple outputs
+#' # Set specific parameter values
 #' result <- runPlugin(
-#'   myname = "user",
 #'   key = "vamp-aubio-plugins:aubioonset",
-#'   wave = audio
+#'   wave = audio,
+#'   params = list(threshold = 0.5, silence = -70)
 #' )
-#' 
-#' # See what outputs were produced
-#' names(result)
-#' 
-#' # Access specific outputs
-#' onsets <- result$onsets
-#' detection_fn <- result$detection_function
 #' }
 #' @seealso \code{\link{vampPlugins}} to list available plugins,
-#'   \code{\link{vampParams}} to get plugin parameters
-runPlugin <- function(key, wave, outfilename = "", useFrames = FALSE) {
-    .Call(`_ReVAMP_runPlugin`, key, wave, outfilename, useFrames)
+#'   \code{\link{vampPluginParams}} to get plugin parameters
+runPlugin <- function(key, wave, params = NULL, useFrames = FALSE) {
+    .Call(`_ReVAMP_runPlugin`, key, wave, params, useFrames)
 }
