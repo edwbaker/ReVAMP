@@ -5,6 +5,8 @@
 #include <cmath>
 #include <iostream>
 #include <cstdint>
+#include <memory>
+#include <vector>
 
 #include <vamp-hostsdk/RealTime.h>
 #include <vamp-hostsdk/PluginHostAdapter.h>
@@ -53,7 +55,7 @@ void collectAllFeatures(int frame, int sr,
     // Make sure we have a FeatureData for this output
     if (allData.find(outputNo) == allData.end()) {
       allData[outputNo] = FeatureData();
-      if (outputNo < (int)outputs.size()) {
+      if (outputNo < static_cast<int>(outputs.size())) {
         allData[outputNo].outputIdentifier = outputs[outputNo].identifier;
       }
     }
@@ -74,7 +76,7 @@ void collectAllFeatures(int frame, int sr,
           lastFeatureTime[outputNo] = featureTime;
         } else {
           if (lastFeatureTime.find(outputNo) != lastFeatureTime.end()) {
-            int increment_ns = (int)((1000000000.0 / output.sampleRate) + 0.5);
+            int increment_ns = static_cast<int>((1000000000.0 / output.sampleRate) + 0.5);
             featureTime = lastFeatureTime[outputNo] + RealTime(0, increment_ns);
           } else {
             featureTime = RealTime::frame2RealTime(frame, sr);
@@ -108,7 +110,7 @@ void collectAllFeatures(int frame, int sr,
       
       // Store values
       data.values.push_back(fli->values);
-      if ((int)fli->values.size() > data.numValueCols) {
+      if (static_cast<int>(fli->values.size()) > data.numValueCols) {
         data.numValueCols = fli->values.size();
       }
     }
@@ -286,8 +288,11 @@ List runPlugin(std::string key, S4 wave, Nullable<List> params = R_NilValue, boo
   
   sfinfo.channels = is_stereo ? 2 : 1;
   
-  Plugin *plugin = loader->loadPlugin
-    (pluginKey, sfinfo.samplerate, PluginLoader::ADAPT_ALL_SAFE);
+  // Use unique_ptr for automatic cleanup
+  std::unique_ptr<Plugin, std::function<void(Plugin*)>> plugin(
+    loader->loadPlugin(pluginKey, sfinfo.samplerate, PluginLoader::ADAPT_ALL_SAFE),
+    [](Plugin* p) { delete p; }
+  );
   if (!plugin) {
     Rcpp::stop("Failed to load plugin '" + key + "'");
   }
@@ -333,9 +338,12 @@ List runPlugin(std::string key, S4 wave, Nullable<List> params = R_NilValue, boo
   // Use actual channel count from Wave object (PluginChannelAdapter will handle mismatches)
   int channels = sfinfo.channels;
   
-  float *filebuf = new float[blockSize * channels];
-  float **plugbuf = new float*[channels];
-  for (int c = 0; c < channels; ++c) plugbuf[c] = new float[blockSize + 2];
+  // Use smart pointers for automatic memory management
+  std::unique_ptr<float[]> filebuf(new float[blockSize * channels]);
+  std::vector<std::unique_ptr<float[]>> plugbuf(channels);
+  for (int c = 0; c < channels; ++c) {
+    plugbuf[c].reset(new float[blockSize + 2]);
+  }
   
   Rcpp::Rcerr << "Using block size = " << blockSize << ", step size = "
        << stepSize << std::endl;
@@ -352,7 +360,6 @@ List runPlugin(std::string key, S4 wave, Nullable<List> params = R_NilValue, boo
   Plugin::OutputList outputs = plugin->getOutputDescriptors();
   Plugin::FeatureSet features;
   
-  int returnValue = 1;
   int progress = 0;
   
   RealTime rt;
@@ -366,7 +373,7 @@ List runPlugin(std::string key, S4 wave, Nullable<List> params = R_NilValue, boo
   
   if (outputs.empty()) {
     Rcpp::Rcerr << "ERROR: Plugin has no outputs!" << std::endl;
-    goto done;
+    return List::create();
   }
   
   Rcpp::Rcerr << "Plugin has " << outputs.size() << " output(s)" << std::endl;
@@ -393,10 +400,10 @@ List runPlugin(std::string key, S4 wave, Nullable<List> params = R_NilValue, boo
     Rcpp::Rcerr << "ERROR: Plugin initialise (channels = " << channels
          << ", stepSize = " << stepSize << ", blockSize = "
          << blockSize << ") failed." << std::endl;
-    goto done;
+    return List::create();
   }
   
-  wrapper = dynamic_cast<PluginWrapper *>(plugin);
+  wrapper = dynamic_cast<PluginWrapper *>(plugin.get());
   if (wrapper) {
     // See documentation for
     // PluginInputDomainAdapter::getTimestampAdjustment
@@ -427,16 +434,16 @@ List runPlugin(std::string key, S4 wave, Nullable<List> params = R_NilValue, boo
       
       // Put data into filebuf (interleaved for stereo)
       for (int i = 0; i < samplesToRead; i++) {
-        filebuf[i * channels] = left[samplesRead + i];
+        filebuf.get()[i * channels] = left[samplesRead + i];
         if (channels == 2) {
-          filebuf[i * channels + 1] = right_channel[samplesRead + i];
+          filebuf.get()[i * channels + 1] = right_channel[samplesRead + i];
         }
       }
       // Zero-pad if we don't have enough samples
       for (int i = samplesToRead; i < blockSize; i++) {
-        filebuf[i * channels] = 0.0f;
+        filebuf.get()[i * channels] = 0.0f;
         if (channels == 2) {
-          filebuf[i * channels + 1] = 0.0f;
+          filebuf.get()[i * channels + 1] = 0.0f;
         }
       }
       
@@ -447,20 +454,20 @@ List runPlugin(std::string key, S4 wave, Nullable<List> params = R_NilValue, boo
     } else {
 
       // otherwise shunt the existing data down and read the remainder.
-      memmove(filebuf, filebuf + (stepSize * channels), overlapSize * channels * sizeof(float));
+      memmove(filebuf.get(), filebuf.get() + (stepSize * channels), overlapSize * channels * sizeof(float));
       
       int samplesToRead = std::min(stepSize, totalSamples - samplesRead);
       for (int i = 0; i < samplesToRead; i++) {
-        filebuf[(overlapSize + i) * channels] = left[samplesRead + i];
+        filebuf.get()[(overlapSize + i) * channels] = left[samplesRead + i];
         if (channels == 2) {
-          filebuf[(overlapSize + i) * channels + 1] = right_channel[samplesRead + i];
+          filebuf.get()[(overlapSize + i) * channels + 1] = right_channel[samplesRead + i];
         }
       }
       // Zero-pad if we don't have enough samples
       for (int i = samplesToRead; i < stepSize; i++) {
-        filebuf[(overlapSize + i) * channels] = 0.0f;
+        filebuf.get()[(overlapSize + i) * channels] = 0.0f;
         if (channels == 2) {
-          filebuf[(overlapSize + i) * channels + 1] = 0.0f;
+          filebuf.get()[(overlapSize + i) * channels + 1] = 0.0f;
         }
       }
       
@@ -474,19 +481,24 @@ List runPlugin(std::string key, S4 wave, Nullable<List> params = R_NilValue, boo
     for (int c = 0; c < channels; ++c) {
       int j = 0;
       while (j < count) {
-        plugbuf[c][j] = filebuf[j * channels + c];
+        plugbuf[c].get()[j] = filebuf.get()[j * channels + c];
         ++j;
       }
 
       while (j < blockSize) {
-        plugbuf[c][j] = 0.0f;
+        plugbuf[c].get()[j] = 0.0f;
         ++j;
       }
     }
 
     rt = RealTime::frame2RealTime(currentStep * stepSize, sfinfo.samplerate);
 
-    features = plugin->process(plugbuf, rt);
+    // Convert vector of unique_ptrs to raw pointer array for plugin API
+    std::vector<float*> plugbuf_raw(channels);
+    for (int c = 0; c < channels; ++c) {
+      plugbuf_raw[c] = plugbuf[c].get();
+    }
+    features = plugin->process(plugbuf_raw.data(), rt);
 
     // Collect features for ALL outputs
     collectAllFeatures
@@ -495,7 +507,7 @@ List runPlugin(std::string key, S4 wave, Nullable<List> params = R_NilValue, boo
 
     if (sfinfo.frames > 0){
       int pp = progress;
-      progress = (int)((float(currentStep * stepSize) / sfinfo.frames) * 100.f + 0.5f);
+      progress = static_cast<int>((float(currentStep * stepSize) / sfinfo.frames) * 100.f + 0.5f);
       if (progress != pp) {
         Rcpp::Rcerr << "\r" << progress << "%";
       }
@@ -515,16 +527,7 @@ List runPlugin(std::string key, S4 wave, Nullable<List> params = R_NilValue, boo
   collectAllFeatures(RealTime::realTime2Frame(rt + adjustment, sfinfo.samplerate),
                      sfinfo.samplerate, outputs, features, allFeatureData, useFrames);
   
-  returnValue = 0;
-  
-  done:
-    delete plugin;
-  
-  // Build and return List of DataFrames (one per output)
-  if (returnValue != 0) {
-    // Return empty List on error
-    return List::create();
-  }
+  // Memory automatically cleaned up by smart pointers
   
   // Create a List to hold DataFrames for each output
   List result;
@@ -547,7 +550,7 @@ List runPlugin(std::string key, S4 wave, Nullable<List> params = R_NilValue, boo
       for (int i = 0; i < featureData.numValueCols; i++) {
         NumericVector col(featureData.timestamp.size(), NA_REAL);
         for (size_t j = 0; j < featureData.values.size(); j++) {
-          if (i < (int)featureData.values[j].size()) {
+          if (i < static_cast<int>(featureData.values[j].size())) {
             col[j] = featureData.values[j][i];
           }
         }
