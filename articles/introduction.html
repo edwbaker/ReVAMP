@@ -94,17 +94,6 @@ Retrieval (MIR) tasks including:</p>
 <h2 id="installation">Installation<a class="anchor" aria-label="anchor" href="#installation"></a>
 </h2>
 <div class="section level3">
-<h3 id="system-requirements">System Requirements<a class="anchor" aria-label="anchor" href="#system-requirements"></a>
-</h3>
-<p>Before installing ReVAMP, you need libsndfile:</p>
-<p><strong>macOS:</strong></p>
-<div class="sourceCode" id="cb2"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb2-1"><a href="#cb2-1" tabindex="-1"></a><span class="ex">brew</span> install libsndfile</span></code></pre></div>
-<p><strong>Ubuntu/Debian:</strong></p>
-<div class="sourceCode" id="cb3"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb3-1"><a href="#cb3-1" tabindex="-1"></a><span class="fu">sudo</span> apt-get install libsndfile1-dev</span></code></pre></div>
-<p><strong>Fedora/RHEL:</strong></p>
-<div class="sourceCode" id="cb4"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb4-1"><a href="#cb4-1" tabindex="-1"></a><span class="fu">sudo</span> dnf install libsndfile-devel</span></code></pre></div>
-</div>
-<div class="section level3">
 <h3 id="installing-vamp-plugins">Installing Vamp Plugins<a class="anchor" aria-label="anchor" href="#installing-vamp-plugins"></a>
 </h3>
 <p>ReVAMP requires Vamp plugins to be installed separately. Popular
@@ -134,7 +123,7 @@ on plugin installation and search paths.</p>
 <h3 id="discovering-available-plugins">Discovering Available Plugins<a class="anchor" aria-label="anchor" href="#discovering-available-plugins"></a>
 </h3>
 <p>First, check what plugins are available on your system:</p>
-<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># List all available plugins</span></span>
 <span><span class="va">plugins</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/vampPlugins.html">vampPlugins</a></span><span class="op">(</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">plugins</span><span class="op">)</span></span>
@@ -163,7 +152,7 @@ on plugin installation and search paths.</p>
 <p>The main function is <code><a href="../reference/runPlugin.html">runPlugin()</a></code>, which executes a
 plugin on audio data and returns results as a named list of data
 frames.</p>
-<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Load audio file</span></span>
 <span><span class="va">audio</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/pkg/tuneR/man/readWave.html" class="external-link">readWave</a></span><span class="op">(</span><span class="st">"path/to/audio.wav"</span><span class="op">)</span></span>
 <span></span>
@@ -196,7 +185,7 @@ frames)</li>
 </h3>
 <p>Plugins are identified by a key in the format
 <code>library:plugin</code>:</p>
-<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Examples of plugin keys</span></span>
 <span><span class="st">"vamp-example-plugins:amplitudefollower"</span></span>
 <span><span class="st">"vamp-aubio:aubiotempo"</span></span>
@@ -211,7 +200,7 @@ frames)</li>
 <div class="section level3">
 <h3 id="discovering-parameters">Discovering Parameters<a class="anchor" aria-label="anchor" href="#discovering-parameters"></a>
 </h3>
-<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Get parameters for a plugin</span></span>
 <span><span class="va">params_df</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/vampPluginParams.html">vampPluginParams</a></span><span class="op">(</span><span class="st">"vamp-aubio:aubiopitch"</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">params_df</span><span class="op">)</span></span></code></pre></div>
@@ -242,7 +231,7 @@ parameters)</li>
 <h3 id="setting-parameters">Setting Parameters<a class="anchor" aria-label="anchor" href="#setting-parameters"></a>
 </h3>
 <p>Pass parameters as a named list:</p>
-<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Run pitch detection with custom parameters</span></span>
 <span><span class="va">result</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/runPlugin.html">runPlugin</a></span><span class="op">(</span></span>
 <span>  key <span class="op">=</span> <span class="st">"vamp-aubio:aubiopitch"</span>,</span>

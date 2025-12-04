@@ -2,7 +2,8 @@
 
 ## Authors
 
-- **Ed Baker**. Maintainer.
+- **Ed Baker**. Author, maintainer.
+  [](https://orcid.org/0000-0002-5887-9543)
 
 ## Citation
 

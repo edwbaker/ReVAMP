@@ -22,28 +22,6 @@ used for Music Information Retrieval (MIR) tasks including:
 
 ## Installation
 
-### System Requirements
-
-Before installing ReVAMP, you need libsndfile:
-
-**macOS:**
-
-``` bash
-brew install libsndfile
-```
-
-**Ubuntu/Debian:**
-
-``` bash
-sudo apt-get install libsndfile1-dev
-```
-
-**Fedora/RHEL:**
-
-``` bash
-sudo dnf install libsndfile-devel
-```
-
 ### Installing Vamp Plugins
 
 ReVAMP requires Vamp plugins to be installed separately. Popular plugin
