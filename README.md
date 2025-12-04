@@ -16,6 +16,34 @@ ReVAMP provides an R interface to the [Vamp audio analysis plugin system](https:
 
 ## Installation
 
+### System Requirements
+
+ReVAMP requires the **libsndfile** library for audio file I/O:
+
+**macOS:**
+```bash
+# Using Homebrew
+brew install libsndfile
+
+# Or using MacPorts
+sudo port install libsndfile
+```
+
+**Ubuntu/Debian:**
+```bash
+sudo apt-get install libsndfile1-dev
+```
+
+**Fedora/RHEL:**
+```bash
+sudo dnf install libsndfile-devel
+```
+
+**Windows:**
+The package includes the necessary binaries.
+
+### Install R Package
+
 Install from source:
 
 ``` r

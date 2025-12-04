@@ -12,6 +12,7 @@ Description: Provides an R interface to the Vamp audio analysis plugin system
     audio feature extraction. Supports mono and stereo audio with automatic
     channel adaptation and domain conversion.
 License: GPL (>= 2)
+SystemRequirements: libsndfile (>= 1.0.0)
 Imports: 
     Rcpp
 LinkingTo:

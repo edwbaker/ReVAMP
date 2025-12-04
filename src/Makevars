@@ -1,1 +1,22 @@
 PKG_CPPFLAGS = -I../inst/vamp/
+
+# Platform-specific settings for libsndfile
+UNAME := $(shell uname)
+
+ifeq ($(UNAME), Darwin)
+  # macOS: try Homebrew paths first, then MacPorts
+  HOMEBREW_PREFIX := $(shell brew --prefix 2>/dev/null || echo "/usr/local")
+  ifneq (,$(wildcard $(HOMEBREW_PREFIX)/include/sndfile.h))
+    PKG_CPPFLAGS += -I$(HOMEBREW_PREFIX)/include
+    PKG_LIBS = -L$(HOMEBREW_PREFIX)/lib -lsndfile
+  else ifneq (,$(wildcard /opt/local/include/sndfile.h))
+    PKG_CPPFLAGS += -I/opt/local/include
+    PKG_LIBS = -L/opt/local/lib -lsndfile
+  else
+    $(error libsndfile not found. Install with: brew install libsndfile)
+  endif
+else
+  # Linux/Unix: use pkg-config if available
+  PKG_LIBS = $(shell pkg-config --libs sndfile 2>/dev/null || echo "-lsndfile")
+  PKG_CPPFLAGS += $(shell pkg-config --cflags sndfile 2>/dev/null)
+endif
