@@ -65,16 +65,6 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
-// rcpp_type
-void rcpp_type(RObject x);
-RcppExport SEXP _ReVAMP_rcpp_type(SEXP xSEXP) {
-BEGIN_RCPP
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< RObject >::type x(xSEXP);
-    rcpp_type(x);
-    return R_NilValue;
-END_RCPP
-}
 
 static const R_CallMethodDef CallEntries[] = {
     {"_ReVAMP_vampInfo", (DL_FUNC) &_ReVAMP_vampInfo, 0},
@@ -82,7 +72,6 @@ static const R_CallMethodDef CallEntries[] = {
     {"_ReVAMP_vampPlugins", (DL_FUNC) &_ReVAMP_vampPlugins, 0},
     {"_ReVAMP_vampPluginParams", (DL_FUNC) &_ReVAMP_vampPluginParams, 1},
     {"_ReVAMP_runPlugin", (DL_FUNC) &_ReVAMP_runPlugin, 4},
-    {"_ReVAMP_rcpp_type", (DL_FUNC) &_ReVAMP_rcpp_type, 1},
     {NULL, NULL, 0}
 };
 

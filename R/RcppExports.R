@@ -21,7 +21,3 @@ runPlugin <- function(key, wave, params = NULL, useFrames = FALSE) {
     .Call(`_ReVAMP_runPlugin`, key, wave, params, useFrames)
 }
 
-rcpp_type <- function(x) {
-    invisible(.Call(`_ReVAMP_rcpp_type`, x))
-}
-

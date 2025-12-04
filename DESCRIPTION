@@ -3,16 +3,18 @@ Type: Package
 Title: R Interface to Vamp Audio Analysis Plugins
 Version: 1.0
 Date: 2025-12-03
-Author: Ed Baker
-Maintainer: Ed Baker <ed@ebaker.me.uk>
+Authors@R: 
+    person("Ed", "Baker", 
+           email = "ed@ebaker.me.uk",
+           role = c("aut", "cre"),
+           comment = c(ORCID = "0000-0002-5887-9543"))
 Description: Provides an R interface to the Vamp audio analysis plugin system
     developed by Queen Mary University of London's Centre for Digital Music.
-    Enables loading and running Vamp plugins for Music Information Retrieval (MIR)
+    Enables loading and running Vamp plugins for various audio analysis
     tasks including tempo detection, onset detection, spectral analysis, and
     audio feature extraction. Supports mono and stereo audio with automatic
     channel adaptation and domain conversion.
 License: GPL (>= 2)
-SystemRequirements: libsndfile (>= 1.0.0)
 Imports: 
     Rcpp
 LinkingTo:

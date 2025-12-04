@@ -2,11 +2,9 @@
 #include <Rcpp.h>
 
 #include <cstring>
-#include <cstdlib>
 #include <cmath>
 #include <iostream>
-#include <set>
-#include <sndfile.h>
+#include <cstdint>
 
 #include <vamp-hostsdk/RealTime.h>
 #include <vamp-hostsdk/PluginHostAdapter.h>
@@ -15,8 +13,6 @@
 #include "system.h"
 
 using namespace Rcpp;
-using namespace std;
-
 
 using Vamp::Plugin;
 using Vamp::PluginHostAdapter;
@@ -119,71 +115,6 @@ void collectAllFeatures(int frame, int sr,
   }
 }
 
-// Collect features in memory for return to R
-void collectFeatures(int frame, int sr,
-                     const Plugin::OutputDescriptor &output, int outputNo,
-                     const Plugin::FeatureSet &features, FeatureData &data, bool useFrames)
-{
-  // Track time for FixedSampleRate outputs with implicit timestamps
-  static std::map<int, RealTime> lastFeatureTime;
-  
-  for (Plugin::FeatureSet::const_iterator fi = features.begin(); fi != features.end(); ++fi) {
-    if (fi->first != outputNo) continue;
-    
-    for (Plugin::FeatureList::const_iterator fli = fi->second.begin(); fli != fi->second.end(); ++fli) {
-      
-      RealTime featureTime;
-      
-      // Handle timestamp according to output sample type
-      if (output.sampleType == Plugin::OutputDescriptor::OneSamplePerStep) {
-        featureTime = RealTime::frame2RealTime(frame, sr);
-      } else if (output.sampleType == Plugin::OutputDescriptor::FixedSampleRate) {
-        if (fli->hasTimestamp) {
-          featureTime = fli->timestamp;
-          lastFeatureTime[outputNo] = featureTime;
-        } else {
-          if (lastFeatureTime.find(outputNo) != lastFeatureTime.end()) {
-            int increment_ns = (int)((1000000000.0 / output.sampleRate) + 0.5);
-            featureTime = lastFeatureTime[outputNo] + RealTime(0, increment_ns);
-          } else {
-            featureTime = RealTime::frame2RealTime(frame, sr);
-          }
-          lastFeatureTime[outputNo] = featureTime;
-        }
-      } else { // VariableSampleRate
-        if (fli->hasTimestamp) {
-          featureTime = fli->timestamp;
-        } else {
-          featureTime = RealTime::frame2RealTime(frame, sr);
-        }
-      }
-      
-      // Store timestamp
-      if (useFrames) {
-        data.timestamp.push_back(RealTime::realTime2Frame(featureTime, sr));
-      } else {
-        data.timestamp.push_back(toSeconds(const_cast<RealTime&>(featureTime)));
-      }
-      
-      // Store duration
-      if (fli->hasDuration) {
-        data.duration.push_back(toSeconds(const_cast<RealTime&>(fli->duration)));
-      } else {
-        data.duration.push_back(NA_REAL);
-      }
-      
-      // Store label
-      data.label.push_back(fli->label);
-      
-      // Store values
-      data.values.push_back(fli->values);
-      if ((int)fli->values.size() > data.numValueCols) {
-        data.numValueCols = fli->values.size();
-      }
-    }
-  }
-}
-
 // [[Rcpp::export]]
 List vampInfo() {
   List vamp = List::create(
@@ -195,7 +126,7 @@ List vampInfo() {
 
 // [[Rcpp::export]]
 StringVector vampPaths() {
-  vector<string> paths = PluginHostAdapter::getPluginPath();
+  std::vector<std::string> paths = PluginHostAdapter::getPluginPath();
   StringVector cv = StringVector::create();
   for (auto i : paths) {
     cv.push_back(i);
@@ -206,18 +137,15 @@ StringVector vampPaths() {
 // [[Rcpp::export]]
 DataFrame vampPlugins() {
   PluginLoader *loader = PluginLoader::getInstance();
-  vector<PluginLoader::PluginKey> plugins = loader->listPlugins();
-  typedef multimap<string, PluginLoader::PluginKey>
+  std::vector<PluginLoader::PluginKey> plugins = loader->listPlugins();
+  typedef std::multimap<std::string, PluginLoader::PluginKey>
     LibraryMap;
   LibraryMap libraryMap;
   
   for (size_t i = 0; i < plugins.size(); ++i) {
-    string path = loader->getLibraryPathForPlugin(plugins[i]);
+    std::string path = loader->getLibraryPathForPlugin(plugins[i]);
     libraryMap.insert(LibraryMap::value_type(path, plugins[i]));
   }
-  
-  string prevPath = "";
-  int index = 0;
   
   StringVector vp_lib = StringVector::create();
   StringVector vp_name = StringVector::create();
@@ -227,7 +155,6 @@ DataFrame vampPlugins() {
   StringVector vp_maker = StringVector::create();
   StringVector vp_rights = StringVector::create();
   StringVector vp_desc = StringVector::create();
-  StringVector vp_default_bin = StringVector::create();
   StringVector vp_domain = StringVector::create();
   NumericVector vp_dss = NumericVector::create();
   NumericVector vp_dbs = NumericVector::create();
@@ -235,30 +162,13 @@ DataFrame vampPlugins() {
   NumericVector vp_max_c = NumericVector::create();
   
   for (LibraryMap::iterator i = libraryMap.begin(); i != libraryMap.end(); ++i) {
-    string path = i->first;
     PluginLoader::PluginKey key = i->second;
-    
-    if (path != prevPath) {
-      prevPath = path;
-      index = 0;
-    }
     
     Plugin *plugin = loader->loadPlugin(key, 48000);
     if (plugin) {
-      string::size_type ki = i->second.find(':');
+      std::string::size_type ki = i->second.find(':');
       vp_lib.push_back(i->second.substr(0, ki));
-      char c = char('A' + index);
-      if (c > 'Z') c = char('a' + (index - 26));
       
-      PluginLoader::PluginCategoryHierarchy category =
-        loader->getPluginCategory(key);
-      string catstr;
-      if (!category.empty()) {
-        for (size_t ci = 0; ci < category.size(); ++ci) {
-          if (ci > 0) catstr += " > ";
-          catstr += category[ci];
-        }
-      }
       vp_name.push_back(plugin->getName());
       vp_id.push_back(key);
       vp_plug_v.push_back(plugin->getPluginVersion());
@@ -272,7 +182,6 @@ DataFrame vampPlugins() {
       vp_min_c.push_back(plugin->getMinChannelCount());
       vp_max_c.push_back(plugin->getMaxChannelCount());
       
-      ++index;
       delete plugin;
     }
   }
@@ -317,18 +226,6 @@ DataFrame vampPluginParams(std::string key) {
     pm_range_min.push_back(pd.minValue);
     pm_range_max.push_back(pd.maxValue);
     pm_default.push_back(pd.defaultValue);
-    if (pd.isQuantized) {
-      Rcpp::Rcout << " - Quantize Step:      "
-           << pd.quantizeStep << endl;
-    }
-    if (!pd.valueNames.empty()) {
-      Rcpp::Rcout << " - Value Names:        ";
-      for (size_t k = 0; k < pd.valueNames.size(); ++k) {
-        if (k > 0) Rcpp::Rcout << ", ";
-        Rcpp::Rcout << "\"" << pd.valueNames[k] << "\"";
-      }
-      Rcpp::Rcout << endl;
-    }
   }
   DataFrame ret = DataFrame::create(
     Named("name") = pm_name,
@@ -357,9 +254,12 @@ List runPlugin(std::string key, S4 wave, Nullable<List> params = R_NilValue, boo
   
   PluginLoader::PluginKey pluginKey = loader->composePluginKey(soname, id);
   
-  SNDFILE *sndfile;
-  SF_INFO sfinfo;
-  memset(&sfinfo, 0, sizeof(SF_INFO));
+  // Audio file info (extracted from Wave object, not from file)
+  struct {
+    int samplerate;
+    int64_t frames;
+    int channels;
+  } sfinfo = {0};
   
   // Get sample rate from Wave object
   sfinfo.samplerate = wave.slot("samp.rate");
@@ -392,7 +292,7 @@ List runPlugin(std::string key, S4 wave, Nullable<List> params = R_NilValue, boo
     Rcpp::stop("Failed to load plugin '" + key + "'");
   }
   
-  Rcpp::Rcerr << "Running plugin: \"" << plugin->getIdentifier() << "\"..." << endl;
+  Rcpp::Rcerr << "Running plugin: \"" << plugin->getIdentifier() << "\"..." << std::endl;
   
   // Note that the following would be much simpler if we used a
   // PluginBufferingAdapter as well -- i.e. if we had passed
@@ -424,11 +324,11 @@ List runPlugin(std::string key, S4 wave, Nullable<List> params = R_NilValue, boo
     } else {
       blockSize = stepSize;
     }
-    Rcpp::Rcerr << blockSize << endl;
+    Rcpp::Rcerr << blockSize << std::endl;
   }
   int overlapSize = blockSize - stepSize;
-  sf_count_t currentStep = 0;
-  int finalStepsRemaining = max(1, (blockSize / stepSize) - 1); // at end of file, this many part-silent frames needed after we hit EOF
+  int64_t currentStep = 0;
+  int finalStepsRemaining = std::max(1, (blockSize / stepSize) - 1); // at end of file, this many part-silent frames needed after we hit EOF
   
   // Use actual channel count from Wave object (PluginChannelAdapter will handle mismatches)
   int channels = sfinfo.channels;
@@ -438,7 +338,7 @@ List runPlugin(std::string key, S4 wave, Nullable<List> params = R_NilValue, boo
   for (int c = 0; c < channels; ++c) plugbuf[c] = new float[blockSize + 2];
   
   Rcpp::Rcerr << "Using block size = " << blockSize << ", step size = "
-       << stepSize << endl;
+       << stepSize << std::endl;
   
   // The channel queries here are for informational purposes only --
   // a PluginChannelAdapter is being used automatically behind the
@@ -446,8 +346,8 @@ List runPlugin(std::string key, S4 wave, Nullable<List> params = R_NilValue, boo
   
   int minch = plugin->getMinChannelCount();
   int maxch = plugin->getMaxChannelCount();
-  Rcpp::Rcerr << "Plugin accepts " << minch << " -> " << maxch << " channel(s)" << endl;
-  Rcpp::Rcerr << "Sound file has " << channels << " (will mix/augment if necessary)" << endl;
+  Rcpp::Rcerr << "Plugin accepts " << minch << " -> " << maxch << " channel(s)" << std::endl;
+  Rcpp::Rcerr << "Sound file has " << channels << " (will mix/augment if necessary)" << std::endl;
   
   Plugin::OutputList outputs = plugin->getOutputDescriptors();
   Plugin::FeatureSet features;
@@ -465,11 +365,11 @@ List runPlugin(std::string key, S4 wave, Nullable<List> params = R_NilValue, boo
   int samplesRead = 0;
   
   if (outputs.empty()) {
-    Rcpp::Rcerr << "ERROR: Plugin has no outputs!" << endl;
+    Rcpp::Rcerr << "ERROR: Plugin has no outputs!" << std::endl;
     goto done;
   }
   
-  Rcpp::Rcerr << "Plugin has " << outputs.size() << " output(s)" << endl;
+  Rcpp::Rcerr << "Plugin has " << outputs.size() << " output(s)" << std::endl;
   
   // Set plugin parameters if provided
   if (params.isNotNull()) {
@@ -482,9 +382,9 @@ List runPlugin(std::string key, S4 wave, Nullable<List> params = R_NilValue, boo
       
       try {
         plugin->setParameter(paramId, paramValue);
-        Rcpp::Rcerr << "Set parameter '" << paramId << "' = " << paramValue << endl;
+        Rcpp::Rcerr << "Set parameter '" << paramId << "' = " << paramValue << std::endl;
       } catch (std::exception &e) {
-        Rcpp::Rcerr << "WARNING: Failed to set parameter '" << paramId << "': " << e.what() << endl;
+        Rcpp::Rcerr << "WARNING: Failed to set parameter '" << paramId << "': " << e.what() << std::endl;
       }
     }
   }
@@ -492,7 +392,7 @@ List runPlugin(std::string key, S4 wave, Nullable<List> params = R_NilValue, boo
   if (!plugin->initialise(channels, stepSize, blockSize)) {
     Rcpp::Rcerr << "ERROR: Plugin initialise (channels = " << channels
          << ", stepSize = " << stepSize << ", blockSize = "
-         << blockSize << ") failed." << endl;
+         << blockSize << ") failed." << std::endl;
     goto done;
   }
   
@@ -523,7 +423,7 @@ List runPlugin(std::string key, S4 wave, Nullable<List> params = R_NilValue, boo
     if ((blockSize==stepSize) || (currentStep==0)) {
 
       // read a full fresh block
-      int samplesToRead = min(blockSize, totalSamples - samplesRead);
+      int samplesToRead = std::min(blockSize, totalSamples - samplesRead);
       
       // Put data into filebuf (interleaved for stereo)
       for (int i = 0; i < samplesToRead; i++) {
@@ -549,7 +449,7 @@ List runPlugin(std::string key, S4 wave, Nullable<List> params = R_NilValue, boo
       // otherwise shunt the existing data down and read the remainder.
       memmove(filebuf, filebuf + (stepSize * channels), overlapSize * channels * sizeof(float));
       
-      int samplesToRead = min(stepSize, totalSamples - samplesRead);
+      int samplesToRead = std::min(stepSize, totalSamples - samplesRead);
       for (int i = 0; i < samplesToRead; i++) {
         filebuf[(overlapSize + i) * channels] = left[samplesRead + i];
         if (channels == 2) {
@@ -605,7 +505,7 @@ List runPlugin(std::string key, S4 wave, Nullable<List> params = R_NilValue, boo
     
   } while (finalStepsRemaining > 0);
   
-  Rcpp::Rcerr << "\rDone" << endl;
+  Rcpp::Rcerr << "\rDone" << std::endl;
   
   rt = RealTime::frame2RealTime(currentStep * stepSize, sfinfo.samplerate);
   
@@ -630,7 +530,6 @@ List runPlugin(std::string key, S4 wave, Nullable<List> params = R_NilValue, boo
   List result;
   
   for (auto &pair : allFeatureData) {
-    int outputNo = pair.first;
     FeatureData &featureData = pair.second;
     
     DataFrame df;
@@ -683,30 +582,4 @@ List runPlugin(std::string key, S4 wave, Nullable<List> params = R_NilValue, boo
   }
   
   return result;
-}
-
-// [[Rcpp::export]]
-void rcpp_type(RObject x){
-  if(is<NumericVector>(x)){
-    if(Rf_isMatrix(x)) Rcout << "NumericMatrix\n";
-    else Rcout << "NumericVector\n";       
-  }
-  else if(is<IntegerVector>(x)){
-    if(Rf_isFactor(x)) Rcout << "factor\n";
-    else Rcout << "IntegerVector\n";
-  }
-  else if(is<CharacterVector>(x))
-    Rcout << "CharacterVector\n";
-  else if(is<LogicalVector>(x))
-    Rcout << "LogicalVector\n";
-  else if(is<DataFrame>(x))
-    Rcout << "DataFrame\n";
-  else if(is<List>(x))
-    Rcout << "List\n";
-  else if(x.isS4())
-    Rcout << "S4\n";
-  else if(x.isNULL())
-    Rcout << "NULL\n";
-  else
-    Rcout << "unknown\n";
 }
