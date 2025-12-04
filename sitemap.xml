@@ -4,14 +4,11 @@
 <url><loc>http://revamp.ebaker.me.uk/index.html</loc></url>
 <url><loc>http://revamp.ebaker.me.uk/news/index.html</loc></url>
 <url><loc>http://revamp.ebaker.me.uk/reference/ReVAMP-package.html</loc></url>
-<url><loc>http://revamp.ebaker.me.uk/reference/get_vamp_plugin_dir.html</loc></url>
 <url><loc>http://revamp.ebaker.me.uk/reference/index.html</loc></url>
-<url><loc>http://revamp.ebaker.me.uk/reference/install_vamp_plugins.html</loc></url>
-<url><loc>http://revamp.ebaker.me.uk/reference/list_available_plugins.html</loc></url>
 <url><loc>http://revamp.ebaker.me.uk/reference/runPlugin.html</loc></url>
 <url><loc>http://revamp.ebaker.me.uk/reference/vampInfo.html</loc></url>
-<url><loc>http://revamp.ebaker.me.uk/reference/vampParams.html</loc></url>
 <url><loc>http://revamp.ebaker.me.uk/reference/vampPaths.html</loc></url>
+<url><loc>http://revamp.ebaker.me.uk/reference/vampPluginParams.html</loc></url>
 <url><loc>http://revamp.ebaker.me.uk/reference/vampPlugins.html</loc></url>
 </urlset>
 

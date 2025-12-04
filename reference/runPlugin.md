@@ -1,63 +1,57 @@
 # Run a Vamp Plugin on Audio Data
 
-Executes a Vamp audio analysis plugin on a Wave object and writes the
-results to a CSV file. This is the main function for performing audio
-feature extraction and analysis.
+Executes a Vamp audio analysis plugin on a Wave object and returns all
+outputs produced by the plugin. This is the main function for performing
+audio feature extraction and analysis.
 
 ## Usage
 
 ``` r
-runPlugin(myname, soname, id, output, outputNo, wave, outfilename, useFrames)
+runPlugin(key, wave, params = NULL, useFrames = FALSE)
 ```
 
 ## Arguments
 
-- myname:
+- key:
 
-  Character string for user identification (used in output)
-
-- soname:
-
-  Character string specifying the plugin library name (e.g.,
-  "vamp-example-plugins", "vamp-aubio-plugins")
-
-- id:
-
-  Character string specifying the plugin identifier within the library
-  (e.g., "amplitudefollower", "aubioonset")
-
-- output:
-
-  Character string specifying which plugin output to use. Plugins may
-  provide multiple output types. Use
+  Character string specifying the plugin in "library:plugin" format
+  (e.g., "vamp-example-plugins:amplitudefollower",
+  "vamp-aubio-plugins:aubioonset"). Use
   [`vampPlugins`](http://revamp.ebaker.me.uk/reference/vampPlugins.md)
-  to see available outputs.
-
-- outputNo:
-
-  Integer specifying the output number (typically 0 for the first
-  output)
+  to see available plugins and their keys.
 
 - wave:
 
   A Wave object from the `tuneR` package containing the audio data to
   analyze. Can be mono or stereo.
 
-- outfilename:
+- params:
 
-  Character string specifying the path to the output CSV file
+  Optional named list of parameter values to configure the plugin.
+  Parameter names must match the parameter identifiers from
+  [`vampPluginParams`](http://revamp.ebaker.me.uk/reference/vampPluginParams.md).
+  Values will be coerced to numeric. If NULL (default), plugin default
+  parameter values are used.
 
 - useFrames:
 
   Logical indicating whether to use frame numbers (TRUE) or timestamps
-  (FALSE) in the output
+  (FALSE) in the output. Default is FALSE.
 
 ## Value
 
-Invisibly returns NULL. Results are written to the specified output
-file.
+A named list of data frames, one for each output produced by the plugin.
+The names correspond to the output identifiers (e.g., "amplitude",
+"onsets"). Each data frame contains columns for timestamp (or frame),
+duration, values, and labels (if applicable). If the plugin has only one
+output, the list will have one element.
 
 ## Details
+
+Many Vamp plugins produce multiple outputs. For example, an onset
+detector might output both "onsets" (discrete event times) and
+"detection_function" (a continuous measure). This function returns ALL
+outputs, allowing you to access whichever ones you need.
 
 The plugin will automatically adapt to the audio characteristics:
 
@@ -67,15 +61,15 @@ The plugin will automatically adapt to the audio characteristics:
 
 - Buffering to handle different block sizes
 
-Output format varies by plugin but typically includes:
+Each output data frame typically includes:
 
-- Timestamp or frame number
+- **timestamp**: Time or frame number of the feature
 
-- Duration (if applicable)
+- **duration**: Duration of the feature (if applicable, otherwise NA)
 
-- Feature values
+- **value/value1/value2/...**: Feature values (number of columns varies)
 
-- Text label (if applicable)
+- **label**: Text label for the feature (if applicable, otherwise empty)
 
 The function supports all three Vamp output sample types:
 
@@ -89,8 +83,8 @@ The function supports all three Vamp output sample types:
 
 [`vampPlugins`](http://revamp.ebaker.me.uk/reference/vampPlugins.md) to
 list available plugins,
-[`vampParams`](http://revamp.ebaker.me.uk/reference/vampParams.md) to
-get plugin parameters
+[`vampPluginParams`](http://revamp.ebaker.me.uk/reference/vampPluginParams.md)
+to get plugin parameters
 
 ## Examples
 
@@ -101,28 +95,39 @@ library(tuneR)
 # Load audio file
 audio <- readWave("myaudio.wav")
 
-# Run amplitude follower plugin
-runPlugin(
-  myname = "user",
-  soname = "vamp-example-plugins",
-  id = "amplitudefollower",
-  output = "amplitude",
-  outputNo = 0,
-  wave = audio,
-  outfilename = "amplitude.csv",
-  useFrames = TRUE
+# Run amplitude follower plugin - returns list with one output
+result <- runPlugin(
+  key = "vamp-example-plugins:amplitudefollower",
+  wave = audio
 )
 
-# Run onset detection
-runPlugin(
-  myname = "user",
-  soname = "vamp-aubio-plugins",
-  id = "aubioonset",
-  output = "onsets",
-  outputNo = 0,
+# Access the amplitude output
+amplitude_data <- result$amplitude
+head(amplitude_data)
+
+# Run onset detection - may return multiple outputs
+result <- runPlugin(
+  key = "vamp-aubio-plugins:aubioonset",
+  wave = audio
+)
+
+# See what outputs were produced
+names(result)
+
+# Access specific outputs
+onsets <- result$onsets
+detection_fn <- result$detection_function
+
+# Run plugin with custom parameters
+# First check what parameters are available
+params_info <- vampPluginParams("vamp-aubio-plugins:aubioonset")
+print(params_info)
+
+# Set specific parameter values
+result <- runPlugin(
+  key = "vamp-aubio-plugins:aubioonset",
   wave = audio,
-  outfilename = "onsets.csv",
-  useFrames = FALSE
+  params = list(threshold = 0.5, silence = -70)
 )
 } # }
 ```

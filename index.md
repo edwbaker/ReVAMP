@@ -155,7 +155,7 @@ plugins <- vampPlugins()
 View(plugins)
 
 # Get parameters for a specific plugin
-params <- vampParams("vamp-aubio-plugins:aubioonset")
+params <- vampPluginParams("vamp-aubio-plugins:aubioonset")
 View(params)
 ```
 

@@ -14,11 +14,6 @@ vampPaths()
 
 A character vector of directory paths
 
-## See also
-
-[`get_vamp_plugin_dir`](http://revamp.ebaker.me.uk/reference/get_vamp_plugin_dir.md)
-to get OS-specific plugin directories
-
 ## Examples
 
 ``` r

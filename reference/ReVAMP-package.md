@@ -17,8 +17,13 @@ Vamp audio analysis plugins. Key functions include:
 - [`runPlugin`](http://revamp.ebaker.me.uk/reference/runPlugin.md) -
   Execute a plugin on audio data
 
-- [`install_vamp_plugins`](http://revamp.ebaker.me.uk/reference/install_vamp_plugins.md) -
-  Install plugins from online sources
+- `vampParams` - Get plugin parameter information
+
+- [`vampPaths`](http://revamp.ebaker.me.uk/reference/vampPaths.md) -
+  List plugin search paths
+
+- [`vampInfo`](http://revamp.ebaker.me.uk/reference/vampInfo.md) - Get
+  Vamp SDK version information
 
 See the individual function documentation for usage examples.
 
@@ -51,10 +56,13 @@ if (FALSE) { # \dontrun{
 plugins <- vampPlugins()
 head(plugins)
 
+# Get plugin search paths
+vampPaths()
+
 # Get info about a specific plugin
 params <- vampParams("vamp-example-plugins:amplitudefollower")
 
-# Install additional plugins
-install_vamp_plugins("vamp-aubio-plugins", user_dir = TRUE)
+# Get SDK version information
+vampInfo()
 } # }
 ```
