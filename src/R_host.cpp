@@ -242,7 +242,7 @@ DataFrame vampPluginParams(std::string key) {
 }
 
 // [[Rcpp::export]]
-List runPlugin(std::string key, S4 wave, Nullable<List> params = R_NilValue, bool useFrames = false)
+List runPlugin(std::string key, S4 wave, Nullable<List> params = R_NilValue, bool useFrames = false, Nullable<int> blockSize = R_NilValue, Nullable<int> stepSize = R_NilValue)
 {
   PluginLoader *loader = PluginLoader::getInstance();
   
@@ -310,43 +310,64 @@ List runPlugin(std::string key, S4 wave, Nullable<List> params = R_NilValue, boo
   // un-adapted plugin, so we aren't doing that here.  See the
   // PluginBufferingAdapter documentation for details.
   
-  int blockSize = plugin->getPreferredBlockSize();
-  int stepSize = plugin->getPreferredStepSize();
+  int actualBlockSize;
+  int actualStepSize;
   
-  if (blockSize == 0) {
-    blockSize = 1024;
-  }
-  if (stepSize == 0) {
-    if (plugin->getInputDomain() == Plugin::FrequencyDomain) {
-      stepSize = blockSize/2;
-    } else {
-      stepSize = blockSize;
+  // Use user-provided blockSize if given, otherwise use plugin's preferred
+  if (blockSize.isNotNull()) {
+    actualBlockSize = as<int>(blockSize);
+    if (actualBlockSize <= 0) {
+      Rcpp::stop("blockSize must be positive");
     }
-  } else if (stepSize > blockSize) {
-    Rcpp::Rcerr << "WARNING: stepSize " << stepSize << " > blockSize " << blockSize << ", resetting blockSize to ";
-    if (plugin->getInputDomain() == Plugin::FrequencyDomain) {
-      blockSize = stepSize * 2;
-    } else {
-      blockSize = stepSize;
+  } else {
+    actualBlockSize = plugin->getPreferredBlockSize();
+    if (actualBlockSize == 0) {
+      actualBlockSize = 1024;
     }
-    Rcpp::Rcerr << blockSize << std::endl;
   }
-  int overlapSize = blockSize - stepSize;
+  
+  // Use user-provided stepSize if given, otherwise use plugin's preferred
+  if (stepSize.isNotNull()) {
+    actualStepSize = as<int>(stepSize);
+    if (actualStepSize <= 0) {
+      Rcpp::stop("stepSize must be positive");
+    }
+  } else {
+    actualStepSize = plugin->getPreferredStepSize();
+    if (actualStepSize == 0) {
+      if (plugin->getInputDomain() == Plugin::FrequencyDomain) {
+        actualStepSize = actualBlockSize/2;
+      } else {
+        actualStepSize = actualBlockSize;
+      }
+    }
+  }
+  
+  if (actualStepSize > actualBlockSize) {
+    Rcpp::Rcerr << "WARNING: stepSize " << actualStepSize << " > blockSize " << actualBlockSize << ", resetting blockSize to ";
+    if (plugin->getInputDomain() == Plugin::FrequencyDomain) {
+      actualBlockSize = actualStepSize * 2;
+    } else {
+      actualBlockSize = actualStepSize;
+    }
+    Rcpp::Rcerr << actualBlockSize << std::endl;
+  }
+  int overlapSize = actualBlockSize - actualStepSize;
   int64_t currentStep = 0;
-  int finalStepsRemaining = std::max(1, (blockSize / stepSize) - 1); // at end of file, this many part-silent frames needed after we hit EOF
+  int finalStepsRemaining = std::max(1, (actualBlockSize / actualStepSize) - 1); // at end of file, this many part-silent frames needed after we hit EOF
   
   // Use actual channel count from Wave object (PluginChannelAdapter will handle mismatches)
   int channels = sfinfo.channels;
   
   // Use smart pointers for automatic memory management
-  std::unique_ptr<float[]> filebuf(new float[blockSize * channels]);
+  std::unique_ptr<float[]> filebuf(new float[actualBlockSize * channels]);
   std::vector<std::unique_ptr<float[]>> plugbuf(channels);
   for (int c = 0; c < channels; ++c) {
-    plugbuf[c].reset(new float[blockSize + 2]);
+    plugbuf[c].reset(new float[actualBlockSize + 2]);
   }
   
-  Rcpp::Rcerr << "Using block size = " << blockSize << ", step size = "
-       << stepSize << std::endl;
+  Rcpp::Rcerr << "Using block size = " << actualBlockSize << ", step size = "
+       << actualStepSize << std::endl;
   
   // The channel queries here are for informational purposes only --
   // a PluginChannelAdapter is being used automatically behind the
@@ -396,10 +417,10 @@ List runPlugin(std::string key, S4 wave, Nullable<List> params = R_NilValue, boo
     }
   }
   
-  if (!plugin->initialise(channels, stepSize, blockSize)) {
+  if (!plugin->initialise(channels, actualStepSize, actualBlockSize)) {
     Rcpp::Rcerr << "ERROR: Plugin initialise (channels = " << channels
-         << ", stepSize = " << stepSize << ", blockSize = "
-         << blockSize << ") failed." << std::endl;
+         << ", stepSize = " << actualStepSize << ", blockSize = "
+         << actualBlockSize << ") failed." << std::endl;
     return List::create();
   }
   
@@ -427,10 +448,10 @@ List runPlugin(std::string key, S4 wave, Nullable<List> params = R_NilValue, boo
     
     int count=0;
 
-    if ((blockSize==stepSize) || (currentStep==0)) {
+    if ((actualBlockSize==actualStepSize) || (currentStep==0)) {
 
       // read a full fresh block
-      int samplesToRead = std::min(blockSize, totalSamples - samplesRead);
+      int samplesToRead = std::min(actualBlockSize, totalSamples - samplesRead);
       
       // Put data into filebuf (interleaved for stereo)
       for (int i = 0; i < samplesToRead; i++) {
@@ -440,7 +461,7 @@ List runPlugin(std::string key, S4 wave, Nullable<List> params = R_NilValue, boo
         }
       }
       // Zero-pad if we don't have enough samples
-      for (int i = samplesToRead; i < blockSize; i++) {
+      for (int i = samplesToRead; i < actualBlockSize; i++) {
         filebuf.get()[i * channels] = 0.0f;
         if (channels == 2) {
           filebuf.get()[i * channels + 1] = 0.0f;
@@ -448,15 +469,15 @@ List runPlugin(std::string key, S4 wave, Nullable<List> params = R_NilValue, boo
       }
       
       count = samplesToRead;
-      samplesRead += stepSize;
+      samplesRead += actualStepSize;
       
-      if (count != blockSize) --finalStepsRemaining;
+      if (count != actualBlockSize) --finalStepsRemaining;
     } else {
 
       // otherwise shunt the existing data down and read the remainder.
-      memmove(filebuf.get(), filebuf.get() + (stepSize * channels), overlapSize * channels * sizeof(float));
+      memmove(filebuf.get(), filebuf.get() + (actualStepSize * channels), overlapSize * channels * sizeof(float));
       
-      int samplesToRead = std::min(stepSize, totalSamples - samplesRead);
+      int samplesToRead = std::min(actualStepSize, totalSamples - samplesRead);
       for (int i = 0; i < samplesToRead; i++) {
         filebuf.get()[(overlapSize + i) * channels] = left[samplesRead + i];
         if (channels == 2) {
@@ -464,7 +485,7 @@ List runPlugin(std::string key, S4 wave, Nullable<List> params = R_NilValue, boo
         }
       }
       // Zero-pad if we don't have enough samples
-      for (int i = samplesToRead; i < stepSize; i++) {
+      for (int i = samplesToRead; i < actualStepSize; i++) {
         filebuf.get()[(overlapSize + i) * channels] = 0.0f;
         if (channels == 2) {
           filebuf.get()[(overlapSize + i) * channels + 1] = 0.0f;
@@ -472,9 +493,9 @@ List runPlugin(std::string key, S4 wave, Nullable<List> params = R_NilValue, boo
       }
       
       count = overlapSize + samplesToRead;
-      samplesRead += stepSize;
+      samplesRead += actualStepSize;
       
-      if (samplesToRead != stepSize) --finalStepsRemaining;
+      if (samplesToRead != actualStepSize) --finalStepsRemaining;
     }
 
     // De-interleave audio data for plugin
@@ -485,13 +506,13 @@ List runPlugin(std::string key, S4 wave, Nullable<List> params = R_NilValue, boo
         ++j;
       }
 
-      while (j < blockSize) {
+      while (j < actualBlockSize) {
         plugbuf[c].get()[j] = 0.0f;
         ++j;
       }
     }
 
-    rt = RealTime::frame2RealTime(currentStep * stepSize, sfinfo.samplerate);
+    rt = RealTime::frame2RealTime(currentStep * actualStepSize, sfinfo.samplerate);
 
     // Convert vector of unique_ptrs to raw pointer array for plugin API
     std::vector<float*> plugbuf_raw(channels);
@@ -507,7 +528,7 @@ List runPlugin(std::string key, S4 wave, Nullable<List> params = R_NilValue, boo
 
     if (sfinfo.frames > 0){
       int pp = progress;
-      progress = static_cast<int>((float(currentStep * stepSize) / sfinfo.frames) * 100.f + 0.5f);
+      progress = static_cast<int>((float(currentStep * actualStepSize) / sfinfo.frames) * 100.f + 0.5f);
       if (progress != pp) {
         Rcpp::Rcerr << "\r" << progress << "%";
       }
@@ -519,7 +540,7 @@ List runPlugin(std::string key, S4 wave, Nullable<List> params = R_NilValue, boo
   
   Rcpp::Rcerr << "\rDone" << std::endl;
   
-  rt = RealTime::frame2RealTime(currentStep * stepSize, sfinfo.samplerate);
+  rt = RealTime::frame2RealTime(currentStep * actualStepSize, sfinfo.samplerate);
   
   features = plugin->getRemainingFeatures();
   

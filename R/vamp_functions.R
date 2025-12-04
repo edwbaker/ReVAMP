@@ -118,6 +118,14 @@ vampPluginParams <- function(key) {
 #'   values are used.
 #' @param useFrames Logical indicating whether to use frame numbers (TRUE) or
 #'   timestamps (FALSE) in the output. Default is FALSE.
+#' @param blockSize Optional integer specifying the analysis block size in samples.
+#'   If NULL (default), the plugin's preferred block size is used. For frequency domain
+#'   plugins, this determines the FFT size and frequency resolution. Larger values give
+#'   better frequency resolution but worse time resolution.
+#' @param stepSize Optional integer specifying the step size (hop size) in samples between
+#'   successive analysis blocks. If NULL (default), the plugin's preferred step size is used.
+#'   For frequency domain plugins, this defaults to blockSize/2. Smaller values give better
+#'   time resolution but increase computation time.
 #' @return A named list of data frames, one for each output produced by the plugin.
 #'   The names correspond to the output identifiers (e.g., "amplitude", "onsets").
 #'   Each data frame contains columns for timestamp (or frame), duration, values, and
@@ -134,6 +142,18 @@ vampPluginParams <- function(key) {
 #'   \item Channel mixing/augmentation if plugin requirements differ from input
 #'   \item Time/frequency domain conversion as needed
 #'   \item Buffering to handle different block sizes
+#' }
+#'
+#' \strong{Block Size and Step Size:}
+#' 
+#' These parameters control the time/frequency resolution trade-off:
+#' \itemize{
+#'   \item \strong{blockSize}: Size of each analysis window. For frequency domain plugins,
+#'     this is the FFT size. Typical values: 512, 1024, 2048, 4096. Larger = better
+#'     frequency resolution, worse time resolution.
+#'   \item \strong{stepSize}: Number of samples to advance between blocks (hop size).
+#'     Typical values: blockSize/2 (50\% overlap), blockSize/4 (75\% overlap). 
+#'     Smaller = better time resolution, more computation.
 #' }
 #'
 #' Each output data frame typically includes:
@@ -192,9 +212,26 @@ vampPluginParams <- function(key) {
 #'   wave = audio,
 #'   params = list(threshold = 0.5, silence = -70)
 #' )
+#' 
+#' # Run with custom block and step sizes for better time resolution
+#' result <- runPlugin(
+#'   key = "vamp-aubio-plugins:aubioonset",
+#'   wave = audio,
+#'   blockSize = 512,   # Smaller blocks for better time resolution
+#'   stepSize = 128     # 75% overlap for smoother detection
+#' )
+#' 
+#' # Run frequency domain plugin with larger FFT for better frequency resolution
+#' result <- runPlugin(
+#'   key = "qm-vamp-plugins:qm-chromagram",
+#'   wave = audio,
+#'   blockSize = 4096,  # Larger FFT for better frequency resolution
+#'   stepSize = 2048    # 50% overlap (typical for frequency domain)
+#' )
 #' }
 #' @seealso \code{\link{vampPlugins}} to list available plugins,
 #'   \code{\link{vampPluginParams}} to get plugin parameters
-runPlugin <- function(key, wave, params = NULL, useFrames = FALSE) {
-    .Call(`_ReVAMP_runPlugin`, key, wave, params, useFrames)
+runPlugin <- function(key, wave, params = NULL, useFrames = FALSE, blockSize = NULL, stepSize = NULL) {
+    .Call(`_ReVAMP_runPlugin`, key, wave, params, useFrames, blockSize, stepSize)
 }
+
