@@ -17,7 +17,8 @@ Vamp audio analysis plugins. Key functions include:
 - [`runPlugin`](http://revamp.ebaker.me.uk/reference/runPlugin.md) -
   Execute a plugin on audio data
 
-- `vampParams` - Get plugin parameter information
+- [`vampPluginParams`](http://revamp.ebaker.me.uk/reference/vampPluginParams.md) -
+  Get plugin parameter information
 
 - [`vampPaths`](http://revamp.ebaker.me.uk/reference/vampPaths.md) -
   List plugin search paths
