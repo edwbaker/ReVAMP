@@ -9,10 +9,7 @@ ReVAMP provides an R interface to the [Vamp audio analysis plugin system](https:
 ## Features
 
 -   **Comprehensive Plugin Support**: Access to 100+ Vamp plugins for audio analysis
--   **Automatic Adaptation**: Handles channel mixing, domain conversion, and buffering automatically
--   **Three Output Sample Types**: OneSamplePerStep, FixedSampleRate, and VariableSampleRate
 -   **Data Frame Output**: Results returned as R data frames for easy analysis and visualization
--   **Optional File Export**: Optionally write results to CSV files
 
 ## Installation
 
@@ -54,7 +51,7 @@ install.packages("path/to/ReVAMP_1.0.tar.gz", repos = NULL, type = "source")
 Or install with devtools:
 
 ``` r
-devtools::install_github("edwbaker/ReVAMP")  # Update with actual repo
+devtools::install_github("edwbaker/ReVAMP")
 ```
 
 ## Installing Vamp Plugins
