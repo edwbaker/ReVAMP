@@ -1,0 +1,96 @@
+# Managing Vamp Plugin Paths
+
+``` r
+library(ReVAMP)
+```
+
+## Overview
+
+Vamp plugins are distributed as separate binary libraries that ReVAMP
+loads at runtime. Understanding how Vamp finds plugins is important for:
+
+- Installing new plugins
+- Troubleshooting missing plugins
+- Managing multiple plugin versions
+- Deploying applications that use ReVAMP
+
+This vignette covers plugin search paths, installation locations, and
+troubleshooting.
+
+## Plugin Search Paths
+
+### Viewing Current Paths
+
+Use [`vampPaths()`](http://revamp.ebaker.me.uk/reference/vampPaths.md)
+to see where ReVAMP searches for plugins:
+
+``` r
+# View plugin search paths
+paths <- vampPaths()
+print(paths)
+```
+
+This returns a character vector of directories searched in order. ReVAMP
+will find the first matching plugin in this list.
+
+### Default Search Paths
+
+Search paths vary by operating system:
+
+#### macOS
+
+1.  `~/Library/Audio/Plug-Ins/Vamp` (user plugins)
+2.  `/Library/Audio/Plug-Ins/Vamp` (system plugins)
+
+#### Linux
+
+1.  `~/.vamp` (user plugins)
+2.  `/usr/local/lib/vamp` (locally installed)
+3.  `/usr/lib/vamp` (system packages)
+
+#### Windows
+
+1.  `%APPDATA%\Vamp Plugins` (user plugins)
+2.  `C:\Program Files\Vamp Plugins` (all users)
+3.  `C:\Program Files (x86)\Vamp Plugins` (32-bit on 64-bit)
+
+### Custom Search Paths
+
+You can add custom plugin directories using the `VAMP_PATH` environment
+variable:
+
+#### macOS/Linux
+
+``` bash
+# In ~/.bashrc or ~/.zshrc
+export VAMP_PATH=$HOME/my-vamp-plugins:/opt/vamp-plugins
+
+# Or for single R session
+Sys.setenv(VAMP_PATH = "/path/to/plugins:/another/path")
+```
+
+#### Windows
+
+``` powershell
+# PowerShell (persistent)
+[Environment]::SetEnvironmentVariable("VAMP_PATH", 
+  "C:\MyPlugins;D:\MorePlugins", "User")
+
+# Or in R session
+Sys.setenv(VAMP_PATH = "C:\\MyPlugins;D:\\MorePlugins")
+```
+
+Path separator is `:` on Unix/macOS and `;` on Windows.
+
+### Verifying Installation
+
+After installing plugins, verify they’re detected:
+
+``` r
+# List all plugins
+plugins <- vampPlugins()
+
+# View plugin details
+plugin_info <- plugins[plugins$id == "vamp-aubio:aubiotempo", ]
+print(plugin_info)
+```
