@@ -20,6 +20,3 @@ system-wide plugin directories and user-specific directories.
 vampPaths()
 }
 }
-\seealso{
-\code{\link{get_vamp_plugin_dir}} to get OS-specific plugin directories
-}

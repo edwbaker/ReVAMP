@@ -30,13 +30,14 @@ double toSeconds(RealTime &time)
 {
   return time.sec + double(time.nsec + 1) / 1000000000.0;
 }
-// Structure to collect features in memory
+// Structure to collect features in memory for a single output
 struct FeatureData {
   std::vector<double> timestamp;
   std::vector<double> duration;
   std::vector<std::string> label;
   std::vector<std::vector<float>> values;
   int numValueCols;
+  std::string outputIdentifier;
   
   FeatureData() : numValueCols(0) {}
 };
@@ -115,6 +116,84 @@ void printFeatures(int frame, int sr,
       }
       
       *out << endl;
+    }
+  }
+}
+
+// Collect features in memory for ALL outputs
+void collectAllFeatures(int frame, int sr,
+                        const Plugin::OutputList &outputs,
+                        const Plugin::FeatureSet &features,
+                        std::map<int, FeatureData> &allData,
+                        bool useFrames)
+{
+  // Track time for FixedSampleRate outputs with implicit timestamps
+  static std::map<int, RealTime> lastFeatureTime;
+  
+  for (Plugin::FeatureSet::const_iterator fi = features.begin(); fi != features.end(); ++fi) {
+    int outputNo = fi->first;
+    
+    // Make sure we have a FeatureData for this output
+    if (allData.find(outputNo) == allData.end()) {
+      allData[outputNo] = FeatureData();
+      if (outputNo < (int)outputs.size()) {
+        allData[outputNo].outputIdentifier = outputs[outputNo].identifier;
+      }
+    }
+    
+    FeatureData &data = allData[outputNo];
+    const Plugin::OutputDescriptor &output = outputs[outputNo];
+    
+    for (Plugin::FeatureList::const_iterator fli = fi->second.begin(); fli != fi->second.end(); ++fli) {
+      
+      RealTime featureTime;
+      
+      // Handle timestamp according to output sample type
+      if (output.sampleType == Plugin::OutputDescriptor::OneSamplePerStep) {
+        featureTime = RealTime::frame2RealTime(frame, sr);
+      } else if (output.sampleType == Plugin::OutputDescriptor::FixedSampleRate) {
+        if (fli->hasTimestamp) {
+          featureTime = fli->timestamp;
+          lastFeatureTime[outputNo] = featureTime;
+        } else {
+          if (lastFeatureTime.find(outputNo) != lastFeatureTime.end()) {
+            int increment_ns = (int)((1000000000.0 / output.sampleRate) + 0.5);
+            featureTime = lastFeatureTime[outputNo] + RealTime(0, increment_ns);
+          } else {
+            featureTime = RealTime::frame2RealTime(frame, sr);
+          }
+          lastFeatureTime[outputNo] = featureTime;
+        }
+      } else { // VariableSampleRate
+        if (fli->hasTimestamp) {
+          featureTime = fli->timestamp;
+        } else {
+          featureTime = RealTime::frame2RealTime(frame, sr);
+        }
+      }
+      
+      // Store timestamp
+      if (useFrames) {
+        data.timestamp.push_back(RealTime::realTime2Frame(featureTime, sr));
+      } else {
+        data.timestamp.push_back(toSeconds(const_cast<RealTime&>(featureTime)));
+      }
+      
+      // Store duration
+      if (fli->hasDuration) {
+        data.duration.push_back(toSeconds(const_cast<RealTime&>(fli->duration)));
+      } else {
+        data.duration.push_back(NA_REAL);
+      }
+      
+      // Store label
+      data.label.push_back(fli->label);
+      
+      // Store values
+      data.values.push_back(fli->values);
+      if ((int)fli->values.size() > data.numValueCols) {
+        data.numValueCols = fli->values.size();
+      }
     }
   }
 }
@@ -343,13 +422,19 @@ DataFrame vampParams(std::string key) {
 }
 
 // [[Rcpp::export]]
-DataFrame runPlugin(std::string myname, std::string soname, std::string id,
-              std::string output, int outputNo, S4 wave,
-              std::string outfilename, bool useFrames)
+List runPlugin(std::string key, S4 wave, std::string outfilename, bool useFrames)
 {
   PluginLoader *loader = PluginLoader::getInstance();
   
-  PluginLoader::PluginKey key = loader->composePluginKey(soname, id);
+  // Split key into soname and id
+  size_t colonPos = key.find(':');
+  if (colonPos == std::string::npos) {
+    Rcpp::stop("Invalid plugin key format. Expected 'library:plugin'");
+  }
+  std::string soname = key.substr(0, colonPos);
+  std::string id = key.substr(colonPos + 1);
+  
+  PluginLoader::PluginKey pluginKey = loader->composePluginKey(soname, id);
   
   SNDFILE *sndfile;
   SF_INFO sfinfo;
@@ -358,8 +443,8 @@ DataFrame runPlugin(std::string myname, std::string soname, std::string id,
   // Get sample rate from Wave object
   sfinfo.samplerate = wave.slot("samp.rate");
   
-  // Data structure to collect features
-  FeatureData featureData;
+  // Data structure to collect features for all outputs
+  std::map<int, FeatureData> allFeatureData;
   
   // Determine channel count from Wave object
   NumericVector left_channel = wave.slot("left");
@@ -390,13 +475,13 @@ DataFrame runPlugin(std::string myname, std::string soname, std::string id,
   }
   
   Plugin *plugin = loader->loadPlugin
-    (key, sfinfo.samplerate, PluginLoader::ADAPT_ALL_SAFE);
+    (pluginKey, sfinfo.samplerate, PluginLoader::ADAPT_ALL_SAFE);
   if (!plugin) {
     if (out) {
       out->close();
       delete out;
     }
-    Rcpp::stop("Failed to load plugin '" + id + "' from library '" + soname + "'");
+    Rcpp::stop("Failed to load plugin '" + key + "'");
   }
   
   Rcpp::Rcerr << "Running plugin: \"" << plugin->getIdentifier() << "\"..." << endl;
@@ -457,7 +542,6 @@ DataFrame runPlugin(std::string myname, std::string soname, std::string id,
   Rcpp::Rcerr << "Sound file has " << channels << " (will mix/augment if necessary)" << endl;
   
   Plugin::OutputList outputs = plugin->getOutputDescriptors();
-  Plugin::OutputDescriptor od;
   Plugin::FeatureSet features;
   
   int returnValue = 1;
@@ -477,30 +561,7 @@ DataFrame runPlugin(std::string myname, std::string soname, std::string id,
     goto done;
   }
   
-  if (outputNo < 0) {
-    
-    for (size_t oi = 0; oi < outputs.size(); ++oi) {
-      if (outputs[oi].identifier == output) {
-        outputNo = oi;
-        break;
-      }
-    }
-    
-    if (outputNo < 0) {
-      Rcpp::Rcerr << "ERROR: Non-existent output \"" << output << "\" requested" << endl;
-      goto done;
-    }
-    
-  } else {
-    
-    if (int(outputs.size()) <= outputNo) {
-      Rcpp::Rcerr << "ERROR: Output " << outputNo << " requested, but plugin has only " << outputs.size() << " output(s)" << endl;
-      goto done;
-    }        
-  }
-  
-  od = outputs[outputNo];
-  Rcpp::Rcerr << "Output is: \"" << od.identifier << "\"" << endl;
+  Rcpp::Rcerr << "Plugin has " << outputs.size() << " output(s)" << endl;
   
   if (!plugin->initialise(channels, stepSize, blockSize)) {
     Rcpp::Rcerr << "ERROR: Plugin initialise (channels = " << channels
@@ -601,22 +662,15 @@ DataFrame runPlugin(std::string myname, std::string soname, std::string id,
 
     features = plugin->process(plugbuf, rt);
 
-    // Collect features in memory
-    collectFeatures
+    // Collect features for ALL outputs
+    collectAllFeatures
       (RealTime::realTime2Frame(rt + adjustment, sfinfo.samplerate),
-       sfinfo.samplerate, od, outputNo, features, featureData, useFrames);
-    
-    // Also write to file if requested
-    if (out) {
-      printFeatures
-        (RealTime::realTime2Frame(rt + adjustment, sfinfo.samplerate),
-         sfinfo.samplerate, od, outputNo, features, out, useFrames);
-    }
+       sfinfo.samplerate, outputs, features, allFeatureData, useFrames);
 
     if (sfinfo.frames > 0){
       int pp = progress;
       progress = (int)((float(currentStep * stepSize) / sfinfo.frames) * 100.f + 0.5f);
-      if (progress != pp && out) {
+      if (progress != pp) {
         Rcpp::Rcerr << "\r" << progress << "%";
       }
     }
@@ -625,21 +679,15 @@ DataFrame runPlugin(std::string myname, std::string soname, std::string id,
     
   } while (finalStepsRemaining > 0);
   
-  if (out) Rcpp::Rcerr << "\rDone" << endl;
+  Rcpp::Rcerr << "\rDone" << endl;
   
   rt = RealTime::frame2RealTime(currentStep * stepSize, sfinfo.samplerate);
   
   features = plugin->getRemainingFeatures();
   
-  // Collect remaining features
-  collectFeatures(RealTime::realTime2Frame(rt + adjustment, sfinfo.samplerate),
-                  sfinfo.samplerate, od, outputNo, features, featureData, useFrames);
-  
-  // Also write to file if requested
-  if (out) {
-    printFeatures(RealTime::realTime2Frame(rt + adjustment, sfinfo.samplerate),
-                  sfinfo.samplerate, od, outputNo, features, out, useFrames);
-  }
+  // Collect remaining features for ALL outputs
+  collectAllFeatures(RealTime::realTime2Frame(rt + adjustment, sfinfo.samplerate),
+                     sfinfo.samplerate, outputs, features, allFeatureData, useFrames);
   
   returnValue = 0;
   
@@ -650,56 +698,66 @@ DataFrame runPlugin(std::string myname, std::string soname, std::string id,
     delete out;
   }
   
-  // Build and return DataFrame
+  // Build and return List of DataFrames (one per output)
   if (returnValue != 0) {
-    // Return empty DataFrame on error
-    return DataFrame::create();
+    // Return empty List on error
+    return List::create();
   }
   
-  // Create DataFrame from collected features
-  DataFrame result;
+  // Create a List to hold DataFrames for each output
+  List result;
   
-  if (featureData.timestamp.empty()) {
-    // No features extracted
-    result = DataFrame::create(
-      Named("timestamp") = NumericVector::create(),
-      Named("duration") = NumericVector::create(),
-      Named("label") = CharacterVector::create()
-    );
-  } else {
-    // Build value columns
-    List valueColumns;
-    for (int i = 0; i < featureData.numValueCols; i++) {
-      NumericVector col(featureData.timestamp.size(), NA_REAL);
-      for (size_t j = 0; j < featureData.values.size(); j++) {
-        if (i < (int)featureData.values[j].size()) {
-          col[j] = featureData.values[j][i];
+  for (auto &pair : allFeatureData) {
+    int outputNo = pair.first;
+    FeatureData &featureData = pair.second;
+    
+    DataFrame df;
+    
+    if (featureData.timestamp.empty()) {
+      // No features extracted for this output
+      df = DataFrame::create(
+        Named("timestamp") = NumericVector::create(),
+        Named("duration") = NumericVector::create(),
+        Named("label") = CharacterVector::create()
+      );
+    } else {
+      // Build value columns
+      List valueColumns;
+      for (int i = 0; i < featureData.numValueCols; i++) {
+        NumericVector col(featureData.timestamp.size(), NA_REAL);
+        for (size_t j = 0; j < featureData.values.size(); j++) {
+          if (i < (int)featureData.values[j].size()) {
+            col[j] = featureData.values[j][i];
+          }
         }
+        std::string colName = "value";
+        if (featureData.numValueCols > 1) {
+          colName += std::to_string(i + 1);
+        }
+        valueColumns[colName] = col;
       }
-      std::string colName = "value";
-      if (featureData.numValueCols > 1) {
-        colName += std::to_string(i + 1);
+      
+      // Build the DataFrame
+      List columns;
+      columns["timestamp"] = wrap(featureData.timestamp);
+      columns["duration"] = wrap(featureData.duration);
+      
+      // Add value columns
+      for (int i = 0; i < featureData.numValueCols; i++) {
+        std::string colName = "value";
+        if (featureData.numValueCols > 1) {
+          colName += std::to_string(i + 1);
+        }
+        columns[colName] = valueColumns[colName];
       }
-      valueColumns[colName] = col;
+      
+      columns["label"] = wrap(featureData.label);
+      
+      df = DataFrame(columns);
     }
     
-    // Build the DataFrame
-    List columns;
-    columns["timestamp"] = wrap(featureData.timestamp);
-    columns["duration"] = wrap(featureData.duration);
-    
-    // Add value columns
-    for (int i = 0; i < featureData.numValueCols; i++) {
-      std::string colName = "value";
-      if (featureData.numValueCols > 1) {
-        colName += std::to_string(i + 1);
-      }
-      columns[colName] = valueColumns[colName];
-    }
-    
-    columns["label"] = wrap(featureData.label);
-    
-    result = DataFrame(columns);
+    // Use output identifier as name
+    result[featureData.outputIdentifier] = df;
   }
   
   return result;

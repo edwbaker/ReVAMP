@@ -30,7 +30,6 @@ vampInfo <- function() {
 #' # List plugin search paths
 #' vampPaths()
 #' }
-#' @seealso \code{\link{get_vamp_plugin_dir}} to get OS-specific plugin directories
 vampPaths <- function() {
     .Call(`_ReVAMP_vampPaths`)
 }
@@ -104,26 +103,31 @@ vampParams <- function(key) {
 
 #' Run a Vamp Plugin on Audio Data
 #'
-#' Executes a Vamp audio analysis plugin on a Wave object and writes the
-#' results to a CSV file. This is the main function for performing audio
-#' feature extraction and analysis.
+#' Executes a Vamp audio analysis plugin on a Wave object and returns all
+#' outputs produced by the plugin. This is the main function for performing
+#' audio feature extraction and analysis.
 #'
-#' @param myname Character string for user identification (used in output)
-#' @param soname Character string specifying the plugin library name
-#'   (e.g., "vamp-example-plugins", "vamp-aubio-plugins")
-#' @param id Character string specifying the plugin identifier within the library
-#'   (e.g., "amplitudefollower", "aubioonset")
-#' @param output Character string specifying which plugin output to use.
-#'   Plugins may provide multiple output types. Use \code{\link{vampPlugins}}
-#'   to see available outputs.
-#' @param outputNo Integer specifying the output number (typically 0 for the first output)
+#' @param key Character string specifying the plugin in "library:plugin" format
+#'   (e.g., "vamp-example-plugins:amplitudefollower", "vamp-aubio-plugins:aubioonset").
+#'   Use \code{\link{vampPlugins}} to see available plugins and their keys.
 #' @param wave A Wave object from the \code{tuneR} package containing the audio
 #'   data to analyze. Can be mono or stereo.
-#' @param outfilename Character string specifying the path to the output CSV file
+#' @param outfilename Character string specifying the path to write output files.
+#'   If empty string (""), no files are written. When specified, creates separate
+#'   CSV files for each output (e.g., "output_identifier.csv"). Default is "" (no files).
 #' @param useFrames Logical indicating whether to use frame numbers (TRUE) or
-#'   timestamps (FALSE) in the output
-#' @return Invisibly returns NULL. Results are written to the specified output file.
+#'   timestamps (FALSE) in the output. Default is FALSE.
+#' @return A named list of data frames, one for each output produced by the plugin.
+#'   The names correspond to the output identifiers (e.g., "amplitude", "onsets").
+#'   Each data frame contains columns for timestamp (or frame), duration, values, and
+#'   labels (if applicable). If the plugin has only one output, the list will have
+#'   one element.
 #' @details
+#' Many Vamp plugins produce multiple outputs. For example, an onset detector might
+#' output both "onsets" (discrete event times) and "detection_function" (a continuous
+#' measure). This function returns ALL outputs, allowing you to access whichever ones
+#' you need.
+#' 
 #' The plugin will automatically adapt to the audio characteristics:
 #' \itemize{
 #'   \item Channel mixing/augmentation if plugin requirements differ from input
@@ -131,12 +135,12 @@ vampParams <- function(key) {
 #'   \item Buffering to handle different block sizes
 #' }
 #'
-#' Output format varies by plugin but typically includes:
+#' Each output data frame typically includes:
 #' \itemize{
-#'   \item Timestamp or frame number
-#'   \item Duration (if applicable)
-#'   \item Feature values
-#'   \item Text label (if applicable)
+#'   \item \strong{timestamp}: Time or frame number of the feature
+#'   \item \strong{duration}: Duration of the feature (if applicable, otherwise NA)
+#'   \item \strong{value/value1/value2/...}: Feature values (number of columns varies)
+#'   \item \strong{label}: Text label for the feature (if applicable, otherwise empty)
 #' }
 #'
 #' The function supports all three Vamp output sample types:
@@ -153,32 +157,50 @@ vampParams <- function(key) {
 #' # Load audio file
 #' audio <- readWave("myaudio.wav")
 #' 
-#' # Run amplitude follower plugin
-#' runPlugin(
-#'   myname = "user",
-#'   soname = "vamp-example-plugins",
-#'   id = "amplitudefollower",
-#'   output = "amplitude",
-#'   outputNo = 0,
-#'   wave = audio,
-#'   outfilename = "amplitude.csv",
-#'   useFrames = TRUE
+#' # Run amplitude follower plugin - returns list with one output
+#' result <- runPlugin(
+#'   key = "vamp-example-plugins:amplitudefollower",
+#'   wave = audio
 #' )
 #' 
-#' # Run onset detection
-#' runPlugin(
-#'   myname = "user",
-#'   soname = "vamp-aubio-plugins",
-#'   id = "aubioonset",
-#'   output = "onsets",
-#'   outputNo = 0,
-#'   wave = audio,
-#'   outfilename = "onsets.csv",
-#'   useFrames = FALSE
+#' # Access the amplitude output
+#' amplitude_data <- result$amplitude
+#' head(amplitude_data)
+#' 
+#' # Run onset detection - may return multiple outputs
+#' result <- runPlugin(
+#'   key = "vamp-aubio-plugins:aubioonset",
+#'   wave = audio
 #' )
+#' 
+#' # See what outputs were produced
+#' names(result)
+#' 
+#' # Access specific outputs
+#' onsets <- result$onsets
+#' detection_fn <- result$detection_function
+#' }
+#' 
+#' # Access the amplitude output
+#' amplitude_data <- result$amplitude
+#' head(amplitude_data)
+#' 
+#' # Run onset detection - may return multiple outputs
+#' result <- runPlugin(
+#'   myname = "user",
+#'   key = "vamp-aubio-plugins:aubioonset",
+#'   wave = audio
+#' )
+#' 
+#' # See what outputs were produced
+#' names(result)
+#' 
+#' # Access specific outputs
+#' onsets <- result$onsets
+#' detection_fn <- result$detection_function
 #' }
 #' @seealso \code{\link{vampPlugins}} to list available plugins,
 #'   \code{\link{vampParams}} to get plugin parameters
-runPlugin <- function(myname, soname, id, output, outputNo, wave, outfilename, useFrames) {
-    .Call(`_ReVAMP_runPlugin`, myname, soname, id, output, outputNo, wave, outfilename, useFrames)
+runPlugin <- function(key, wave, outfilename = "", useFrames = FALSE) {
+    .Call(`_ReVAMP_runPlugin`, key, wave, outfilename, useFrames)
 }

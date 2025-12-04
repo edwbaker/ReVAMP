@@ -18,7 +18,9 @@ audio analysis plugins. Key functions include:
 \itemize{
   \item \code{\link{vampPlugins}} - List all available Vamp plugins
   \item \code{\link{runPlugin}} - Execute a plugin on audio data
-  \item \code{\link{install_vamp_plugins}} - Install plugins from online sources
+  \item \code{\link{vampParams}} - Get plugin parameter information
+  \item \code{\link{vampPaths}} - List plugin search paths
+  \item \code{\link{vampInfo}} - Get Vamp SDK version information
 }
 
 See the individual function documentation for usage examples.
@@ -45,10 +47,13 @@ In Proceedings of the 18th ACM international conference on Multimedia (pp. 1467-
 plugins <- vampPlugins()
 head(plugins)
 
+# Get plugin search paths
+vampPaths()
+
 # Get info about a specific plugin
 params <- vampParams("vamp-example-plugins:amplitudefollower")
 
-# Install additional plugins
-install_vamp_plugins("vamp-aubio-plugins", user_dir = TRUE)
+# Get SDK version information
+vampInfo()
 }
 }

@@ -17,8 +17,8 @@ vampParams <- function(key) {
     .Call(`_ReVAMP_vampParams`, key)
 }
 
-runPlugin <- function(myname, soname, id, output, outputNo, wave, outfilename, useFrames) {
-    .Call(`_ReVAMP_runPlugin`, myname, soname, id, output, outputNo, wave, outfilename, useFrames)
+runPlugin <- function(key, wave, outfilename, useFrames) {
+    .Call(`_ReVAMP_runPlugin`, key, wave, outfilename, useFrames)
 }
 
 rcpp_type <- function(x) {

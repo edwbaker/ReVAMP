@@ -14,7 +14,8 @@ Description: Provides an R interface to the Vamp audio analysis plugin system
 License: GPL (>= 2)
 Imports: 
     Rcpp
-LinkingTo: Rcpp
+LinkingTo:
+    Rcpp
 Suggests: 
     testthat (>= 3.0.0),
     tuneR
@@ -22,4 +23,5 @@ Config/testthat/edition: 3
 Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.3.3
 Encoding: UTF-8
-URL: http://ebaker.me.uk/ReVAMP/
+URL: http://revamp.ebaker.me.uk/
+BugReports: https://github.com/edwbaker/ReVAMP/issues

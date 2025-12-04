@@ -52,20 +52,16 @@ BEGIN_RCPP
 END_RCPP
 }
 // runPlugin
-DataFrame runPlugin(std::string myname, std::string soname, std::string id, std::string output, int outputNo, S4 wave, std::string outfilename, bool useFrames);
-RcppExport SEXP _ReVAMP_runPlugin(SEXP mynameSEXP, SEXP sonameSEXP, SEXP idSEXP, SEXP outputSEXP, SEXP outputNoSEXP, SEXP waveSEXP, SEXP outfilenameSEXP, SEXP useFramesSEXP) {
+List runPlugin(std::string key, S4 wave, std::string outfilename, bool useFrames);
+RcppExport SEXP _ReVAMP_runPlugin(SEXP keySEXP, SEXP waveSEXP, SEXP outfilenameSEXP, SEXP useFramesSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< std::string >::type myname(mynameSEXP);
-    Rcpp::traits::input_parameter< std::string >::type soname(sonameSEXP);
-    Rcpp::traits::input_parameter< std::string >::type id(idSEXP);
-    Rcpp::traits::input_parameter< std::string >::type output(outputSEXP);
-    Rcpp::traits::input_parameter< int >::type outputNo(outputNoSEXP);
+    Rcpp::traits::input_parameter< std::string >::type key(keySEXP);
     Rcpp::traits::input_parameter< S4 >::type wave(waveSEXP);
     Rcpp::traits::input_parameter< std::string >::type outfilename(outfilenameSEXP);
     Rcpp::traits::input_parameter< bool >::type useFrames(useFramesSEXP);
-    rcpp_result_gen = Rcpp::wrap(runPlugin(myname, soname, id, output, outputNo, wave, outfilename, useFrames));
+    rcpp_result_gen = Rcpp::wrap(runPlugin(key, wave, outfilename, useFrames));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -85,7 +81,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_ReVAMP_vampPaths", (DL_FUNC) &_ReVAMP_vampPaths, 0},
     {"_ReVAMP_vampPlugins", (DL_FUNC) &_ReVAMP_vampPlugins, 0},
     {"_ReVAMP_vampParams", (DL_FUNC) &_ReVAMP_vampParams, 1},
-    {"_ReVAMP_runPlugin", (DL_FUNC) &_ReVAMP_runPlugin, 8},
+    {"_ReVAMP_runPlugin", (DL_FUNC) &_ReVAMP_runPlugin, 4},
     {"_ReVAMP_rcpp_type", (DL_FUNC) &_ReVAMP_rcpp_type, 1},
     {NULL, NULL, 0}
 };
