@@ -4,7 +4,7 @@ pkgdown_sha: ~
 articles:
   introduction: introduction.html
   vamp-paths: vamp-paths.html
-last_built: 2025-12-04T16:54Z
+last_built: 2025-12-04T17:11Z
 urls:
   reference: http://revamp.ebaker.me.uk/reference
   article: http://revamp.ebaker.me.uk/articles
