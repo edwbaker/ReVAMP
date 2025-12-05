@@ -420,7 +420,9 @@ List runPlugin(std::string key, S4 wave, Nullable<List> params = R_NilValue, boo
       
       try {
         plugin->setParameter(paramId, paramValue);
-        Rcpp::Rcerr << "Set parameter '" << paramId << "' = " << paramValue << std::endl;
+        if (verbose) {
+          Rcpp::Rcerr << "Set parameter '" << paramId << "' = " << paramValue << std::endl;
+        }
       } catch (std::exception &e) {
         Rcpp::Rcerr << "WARNING: Failed to set parameter '" << paramId << "': " << e.what() << std::endl;
       }
@@ -479,7 +481,7 @@ List runPlugin(std::string key, S4 wave, Nullable<List> params = R_NilValue, boo
       }
       
       count = samplesToRead;
-      samplesRead += actualStepSize;
+      samplesRead += count;
       
       if (count != actualBlockSize) --finalStepsRemaining;
     } else {

@@ -25,3 +25,4 @@ src/*.so
 ^_pkgdown\.yml$
 ^docs$
 ^pkgdown$
+^performance_comparison\.R$
