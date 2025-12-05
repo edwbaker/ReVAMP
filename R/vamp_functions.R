@@ -126,6 +126,8 @@ vampPluginParams <- function(key) {
 #'   successive analysis blocks. If NULL (default), the plugin's preferred step size is used.
 #'   For frequency domain plugins, this defaults to blockSize/2. Smaller values give better
 #'   time resolution but increase computation time.
+#' @param verbose Logical indicating whether to print progress messages and diagnostic
+#'   information during plugin execution. Default is FALSE for quiet operation.
 #' @return A named list of data frames, one for each output produced by the plugin.
 #'   The names correspond to the output identifiers (e.g., "amplitude", "onsets").
 #'   Each data frame contains columns for timestamp (or frame), duration, values, and
@@ -231,7 +233,7 @@ vampPluginParams <- function(key) {
 #' }
 #' @seealso \code{\link{vampPlugins}} to list available plugins,
 #'   \code{\link{vampPluginParams}} to get plugin parameters
-runPlugin <- function(key, wave, params = NULL, useFrames = FALSE, blockSize = NULL, stepSize = NULL) {
-    .Call(`_ReVAMP_runPlugin`, key, wave, params, useFrames, blockSize, stepSize)
+runPlugin <- function(key, wave, params = NULL, useFrames = FALSE, blockSize = NULL, stepSize = NULL, verbose = FALSE) {
+    .Call(`_ReVAMP_runPlugin`, key, wave, params, useFrames, blockSize, stepSize, verbose)
 }
 

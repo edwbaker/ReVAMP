@@ -52,8 +52,8 @@ BEGIN_RCPP
 END_RCPP
 }
 // runPlugin
-List runPlugin(std::string key, S4 wave, Nullable<List> params, bool useFrames, Nullable<int> blockSize, Nullable<int> stepSize);
-RcppExport SEXP _ReVAMP_runPlugin(SEXP keySEXP, SEXP waveSEXP, SEXP paramsSEXP, SEXP useFramesSEXP, SEXP blockSizeSEXP, SEXP stepSizeSEXP) {
+List runPlugin(std::string key, S4 wave, Nullable<List> params, bool useFrames, Nullable<int> blockSize, Nullable<int> stepSize, bool verbose);
+RcppExport SEXP _ReVAMP_runPlugin(SEXP keySEXP, SEXP waveSEXP, SEXP paramsSEXP, SEXP useFramesSEXP, SEXP blockSizeSEXP, SEXP stepSizeSEXP, SEXP verboseSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -63,7 +63,8 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< bool >::type useFrames(useFramesSEXP);
     Rcpp::traits::input_parameter< Nullable<int> >::type blockSize(blockSizeSEXP);
     Rcpp::traits::input_parameter< Nullable<int> >::type stepSize(stepSizeSEXP);
-    rcpp_result_gen = Rcpp::wrap(runPlugin(key, wave, params, useFrames, blockSize, stepSize));
+    Rcpp::traits::input_parameter< bool >::type verbose(verboseSEXP);
+    rcpp_result_gen = Rcpp::wrap(runPlugin(key, wave, params, useFrames, blockSize, stepSize, verbose));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -73,7 +74,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_ReVAMP_vampPaths", (DL_FUNC) &_ReVAMP_vampPaths, 0},
     {"_ReVAMP_vampPlugins", (DL_FUNC) &_ReVAMP_vampPlugins, 0},
     {"_ReVAMP_vampPluginParams", (DL_FUNC) &_ReVAMP_vampPluginParams, 1},
-    {"_ReVAMP_runPlugin", (DL_FUNC) &_ReVAMP_runPlugin, 6},
+    {"_ReVAMP_runPlugin", (DL_FUNC) &_ReVAMP_runPlugin, 7},
     {NULL, NULL, 0}
 };
 

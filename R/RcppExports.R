@@ -17,7 +17,7 @@ vampPluginParams <- function(key) {
     .Call(`_ReVAMP_vampPluginParams`, key)
 }
 
-runPlugin <- function(key, wave, params = NULL, useFrames = FALSE, blockSize = NULL, stepSize = NULL) {
-    .Call(`_ReVAMP_runPlugin`, key, wave, params, useFrames, blockSize, stepSize)
+runPlugin <- function(key, wave, params = NULL, useFrames = FALSE, blockSize = NULL, stepSize = NULL, verbose = FALSE) {
+    .Call(`_ReVAMP_runPlugin`, key, wave, params, useFrames, blockSize, stepSize, verbose)
 }
 
