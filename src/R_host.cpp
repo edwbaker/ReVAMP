@@ -28,7 +28,9 @@ double toSeconds(const RealTime &time)
 {
   return time.sec + double(time.nsec + 1) / 1000000000.0;
 }
-// Structure to collect features in memory for a single output
+
+
+// Struct to collect features in memory for single output
 struct FeatureData {
   std::vector<double> timestamp;
   std::vector<double> duration;
@@ -270,10 +272,8 @@ List runPlugin(std::string key, RObject wave, Nullable<List> params = R_NilValue
 
   if (wave.isS4()) {
       S4 waveObj(wave);
-      // Get sample rate from Wave object
       sfinfo.samplerate = waveObj.slot("samp.rate");
       
-      // Determine channel count from Wave object
       left_channel = waveObj.slot("left");
       sfinfo.frames = left_channel.length();
       
@@ -306,12 +306,7 @@ List runPlugin(std::string key, RObject wave, Nullable<List> params = R_NilValue
               bit = 16; // Default to 16 if slot missing
           }
           
-          if (bit == 8) scale_factor = 1.0 / 128.0; // 8-bit is usually unsigned 0-255, centered at 128. tuneR might handle this differently.
-          // tuneR 8-bit: "unsigned integer (0..255)". Center is 127 or 128.
-          // But let's assume standard PCM normalization for now.
-          // Actually, tuneR 8-bit might be 0-255. 
-          // If we want to be safe, we should check tuneR docs.
-          // For 16-bit (signed):
+          if (bit == 8) scale_factor = 1.0 / 128.0;
           else if (bit == 16) scale_factor = 1.0 / 32768.0;
           else if (bit == 24) scale_factor = 1.0 / 8388608.0;
           else if (bit == 32) scale_factor = 1.0 / 2147483648.0;
@@ -333,7 +328,6 @@ List runPlugin(std::string key, RObject wave, Nullable<List> params = R_NilValue
   // Data structure to collect features for all outputs
   std::map<int, FeatureData> allFeatureData;
   
-  // Use unique_ptr for automatic cleanup
   std::unique_ptr<Plugin, std::function<void(Plugin*)>> plugin(
     loader->loadPlugin(pluginKey, sfinfo.samplerate, PluginLoader::ADAPT_ALL_SAFE),
     [](Plugin* p) { delete p; }
@@ -345,17 +339,6 @@ List runPlugin(std::string key, RObject wave, Nullable<List> params = R_NilValue
   if (verbose) {
     Rcpp::Rcerr << "Running plugin: \"" << plugin->getIdentifier() << "\"..." << std::endl;
   }
-  
-  // Note that the following would be much simpler if we used a
-  // PluginBufferingAdapter as well -- i.e. if we had passed
-  // PluginLoader::ADAPT_ALL to loader->loadPlugin() above, instead
-  // of ADAPT_ALL_SAFE.  Then we could simply specify our own block
-  // size, keep the step size equal to the block size, and ignore
-  // the plugin's bleatings.  However, there are some issues with
-  // using a PluginBufferingAdapter that make the results sometimes
-  // technically different from (if effectively the same as) the
-  // un-adapted plugin, so we aren't doing that here.  See the
-  // PluginBufferingAdapter documentation for details.
   
   int actualBlockSize;
   int actualStepSize;
@@ -401,7 +384,7 @@ List runPlugin(std::string key, RObject wave, Nullable<List> params = R_NilValue
   }
   int overlapSize = actualBlockSize - actualStepSize;
   int64_t currentStep = 0;
-  int finalStepsRemaining = std::max(1, (actualBlockSize / actualStepSize) - 1); // at end of file, this many part-silent frames needed after we hit EOF
+  int finalStepsRemaining = std::max(1, (actualBlockSize / actualStepSize) - 1);
   
   // Use actual channel count from Wave object (PluginChannelAdapter will handle mismatches)
   int channels = sfinfo.channels;
@@ -423,7 +406,7 @@ List runPlugin(std::string key, RObject wave, Nullable<List> params = R_NilValue
   
   // The channel queries here are for informational purposes only --
   // a PluginChannelAdapter is being used automatically behind the
-  // scenes, and it will take case of any channel mismatch
+  // scenes, and it will take care of any channel mismatch
   
   int minch = plugin->getMinChannelCount();
   int maxch = plugin->getMaxChannelCount();
@@ -444,7 +427,6 @@ List runPlugin(std::string key, RObject wave, Nullable<List> params = R_NilValue
   PluginWrapper *wrapper = 0;
   RealTime adjustment = RealTime::zeroTime;
   
-  // Declare these here to avoid goto issues
   int totalSamples = 0;
   int samplesRead = 0;
   
@@ -482,14 +464,10 @@ List runPlugin(std::string key, RObject wave, Nullable<List> params = R_NilValue
   
   wrapper = dynamic_cast<PluginWrapper *>(plugin.get());
   if (wrapper) {
-    // See documentation for
-    // PluginInputDomainAdapter::getTimestampAdjustment
     PluginInputDomainAdapter *ida =
       wrapper->getWrapper<PluginInputDomainAdapter>();
     if (ida) adjustment = ida->getTimestampAdjustment();
   }
-  
-  // Here we iterate over the frames, avoiding asking the numframes in case it's streaming input.
   
   totalSamples = (int)sfinfo.frames;
   samplesRead = 0;
@@ -585,7 +563,6 @@ List runPlugin(std::string key, RObject wave, Nullable<List> params = R_NilValue
     }
     features = plugin->process(plugbuf_raw.data(), rt);
 
-    // Collect features for ALL outputs
     collectAllFeatures
       (RealTime::realTime2Frame(rt + adjustment, sfinfo.samplerate),
        sfinfo.samplerate, outputs, features, allFeatureData, useFrames, lastFeatureTime);
@@ -614,7 +591,6 @@ List runPlugin(std::string key, RObject wave, Nullable<List> params = R_NilValue
   collectAllFeatures(RealTime::realTime2Frame(rt + adjustment, sfinfo.samplerate),
                      sfinfo.samplerate, outputs, features, allFeatureData, useFrames, lastFeatureTime);
   
-  // Memory automatically cleaned up by smart pointers
   
   // Create a List to hold DataFrames for each output
   List result;
