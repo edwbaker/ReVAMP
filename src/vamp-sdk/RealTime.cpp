@@ -41,7 +41,7 @@
    Relicensed by the author as detailed above.
 */
 
-#include <iostream>
+// #include <iostream>
 
 #if (__GNUC__ < 3)
 #include <strstream>
@@ -50,8 +50,8 @@
 #include <sstream>
 #endif
 
-using std::cerr;
-using std::endl;
+// using std::cerr;
+// using std::endl;
 
 #ifndef _WIN32
 #include <sys/time.h>

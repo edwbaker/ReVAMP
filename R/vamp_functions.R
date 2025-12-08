@@ -111,7 +111,9 @@ vampPluginParams <- function(key) {
 #'   (e.g., "vamp-example-plugins:amplitudefollower", "vamp-aubio-plugins:aubioonset").
 #'   Use \code{\link{vampPlugins}} to see available plugins and their keys.
 #' @param wave A Wave object from the \code{tuneR} package containing the audio
-#'   data to analyze. Can be mono or stereo.
+#'   data to analyze, or a character string specifying the path to a WAV file.
+#'   Using a file path avoids loading the entire audio file into R memory, which
+#'   can be more efficient for large files. Can be mono or stereo.
 #' @param params Optional named list of parameter values to configure the plugin.
 #'   Parameter names must match the parameter identifiers from \code{\link{vampPluginParams}}.
 #'   Values will be coerced to numeric. If NULL (default), plugin default parameter
@@ -182,8 +184,8 @@ vampPluginParams <- function(key) {
 #' 
 #' # Run amplitude follower plugin - returns list with one output
 #' result <- runPlugin(
-#'   key = "vamp-example-plugins:amplitudefollower",
-#'   wave = audio
+#'   wave = audio,
+#'   key = "vamp-example-plugins:amplitudefollower"
 #' )
 #' 
 #' # Access the amplitude output
@@ -192,8 +194,8 @@ vampPluginParams <- function(key) {
 #' 
 #' # Run onset detection - may return multiple outputs
 #' result <- runPlugin(
-#'   key = "vamp-aubio-plugins:aubioonset",
-#'   wave = audio
+#'   wave = audio,
+#'   key = "vamp-aubio-plugins:aubioonset"
 #' )
 #' 
 #' # See what outputs were produced
@@ -210,30 +212,30 @@ vampPluginParams <- function(key) {
 #' 
 #' # Set specific parameter values
 #' result <- runPlugin(
-#'   key = "vamp-aubio-plugins:aubioonset",
 #'   wave = audio,
+#'   key = "vamp-aubio-plugins:aubioonset",
 #'   params = list(threshold = 0.5, silence = -70)
 #' )
 #' 
 #' # Run with custom block and step sizes for better time resolution
 #' result <- runPlugin(
-#'   key = "vamp-aubio-plugins:aubioonset",
 #'   wave = audio,
+#'   key = "vamp-aubio-plugins:aubioonset",
 #'   blockSize = 512,   # Smaller blocks for better time resolution
 #'   stepSize = 128     # 75% overlap for smoother detection
 #' )
 #' 
 #' # Run frequency domain plugin with larger FFT for better frequency resolution
 #' result <- runPlugin(
-#'   key = "qm-vamp-plugins:qm-chromagram",
 #'   wave = audio,
+#'   key = "qm-vamp-plugins:qm-chromagram",
 #'   blockSize = 4096,  # Larger FFT for better frequency resolution
 #'   stepSize = 2048    # 50% overlap (typical for frequency domain)
 #' )
 #' }
 #' @seealso \code{\link{vampPlugins}} to list available plugins,
 #'   \code{\link{vampPluginParams}} to get plugin parameters
-runPlugin <- function(key, wave, params = NULL, useFrames = FALSE, blockSize = NULL, stepSize = NULL, verbose = FALSE) {
+runPlugin <- function(wave, key, params = NULL, useFrames = FALSE, blockSize = NULL, stepSize = NULL, verbose = FALSE) {
     .Call(`_ReVAMP_runPlugin`, key, wave, params, useFrames, blockSize, stepSize, verbose)
 }
 

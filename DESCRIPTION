@@ -23,7 +23,8 @@ Suggests:
     testthat (>= 3.0.0),
     tuneR,
     knitr,
-    rmarkdown
+    rmarkdown,
+    spelling
 Config/testthat/edition: 3
 VignetteBuilder: knitr
 Roxygen: list(markdown = TRUE)
@@ -33,3 +34,4 @@ URL:
     http://revamp.ebaker.me.uk/,
     https://github.com/edwbaker/ReVAMP
 BugReports: https://github.com/edwbaker/ReVAMP/issues
+Language: en-US

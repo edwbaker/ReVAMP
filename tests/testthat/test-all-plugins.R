@@ -5,7 +5,7 @@ test_that("all installed plugins can be executed", {
   # Get all installed plugins
   plugins <- vampPlugins()
   
-  expect_gt(nrow(plugins), 0, label = "No plugins installed")
+  skip_if(nrow(plugins) == 0, "No plugins installed")
   
   # Create a simple test audio signal (1 second at 44100 Hz)
   sr <- 44100

@@ -4,15 +4,25 @@
 \alias{runPlugin}
 \title{Run a Vamp Plugin on Audio Data}
 \usage{
-runPlugin(key, wave, params = NULL, useFrames = FALSE)
+runPlugin(
+  wave,
+  key,
+  params = NULL,
+  useFrames = FALSE,
+  blockSize = NULL,
+  stepSize = NULL,
+  verbose = FALSE
+)
 }
 \arguments{
+\item{wave}{A Wave object from the \code{tuneR} package containing the audio
+data to analyze, or a character string specifying the path to a WAV file.
+Using a file path avoids loading the entire audio file into R memory, which
+can be more efficient for large files. Can be mono or stereo.}
+
 \item{key}{Character string specifying the plugin in "library:plugin" format
 (e.g., "vamp-example-plugins:amplitudefollower", "vamp-aubio-plugins:aubioonset").
 Use \code{\link{vampPlugins}} to see available plugins and their keys.}
-
-\item{wave}{A Wave object from the \code{tuneR} package containing the audio
-data to analyze. Can be mono or stereo.}
 
 \item{params}{Optional named list of parameter values to configure the plugin.
 Parameter names must match the parameter identifiers from \code{\link{vampPluginParams}}.
@@ -21,6 +31,19 @@ values are used.}
 
 \item{useFrames}{Logical indicating whether to use frame numbers (TRUE) or
 timestamps (FALSE) in the output. Default is FALSE.}
+
+\item{blockSize}{Optional integer specifying the analysis block size in samples.
+If NULL (default), the plugin's preferred block size is used. For frequency domain
+plugins, this determines the FFT size and frequency resolution. Larger values give
+better frequency resolution but worse time resolution.}
+
+\item{stepSize}{Optional integer specifying the step size (hop size) in samples between
+successive analysis blocks. If NULL (default), the plugin's preferred step size is used.
+For frequency domain plugins, this defaults to blockSize/2. Smaller values give better
+time resolution but increase computation time.}
+
+\item{verbose}{Logical indicating whether to print progress messages and diagnostic
+information during plugin execution. Default is FALSE for quiet operation.}
 }
 \value{
 A named list of data frames, one for each output produced by the plugin.
@@ -47,6 +70,18 @@ The plugin will automatically adapt to the audio characteristics:
 \item Buffering to handle different block sizes
 }
 
+\strong{Block Size and Step Size:}
+
+These parameters control the time/frequency resolution trade-off:
+\itemize{
+\item \strong{blockSize}: Size of each analysis window. For frequency domain plugins,
+this is the FFT size. Typical values: 512, 1024, 2048, 4096. Larger = better
+frequency resolution, worse time resolution.
+\item \strong{stepSize}: Number of samples to advance between blocks (hop size).
+Typical values: blockSize/2 (50\\% overlap), blockSize/4 (75\\% overlap).
+Smaller = better time resolution, more computation.
+}
+
 Each output data frame typically includes:
 \itemize{
 \item \strong{timestamp}: Time or frame number of the feature
@@ -71,8 +106,8 @@ audio <- readWave("myaudio.wav")
 
 # Run amplitude follower plugin - returns list with one output
 result <- runPlugin(
-  key = "vamp-example-plugins:amplitudefollower",
-  wave = audio
+  wave = audio,
+  key = "vamp-example-plugins:amplitudefollower"
 )
 
 # Access the amplitude output
@@ -81,8 +116,8 @@ head(amplitude_data)
 
 # Run onset detection - may return multiple outputs
 result <- runPlugin(
-  key = "vamp-aubio-plugins:aubioonset",
-  wave = audio
+  wave = audio,
+  key = "vamp-aubio-plugins:aubioonset"
 )
 
 # See what outputs were produced
@@ -99,9 +134,25 @@ print(params_info)
 
 # Set specific parameter values
 result <- runPlugin(
-  key = "vamp-aubio-plugins:aubioonset",
   wave = audio,
+  key = "vamp-aubio-plugins:aubioonset",
   params = list(threshold = 0.5, silence = -70)
+)
+
+# Run with custom block and step sizes for better time resolution
+result <- runPlugin(
+  wave = audio,
+  key = "vamp-aubio-plugins:aubioonset",
+  blockSize = 512,   # Smaller blocks for better time resolution
+  stepSize = 128     # 75\% overlap for smoother detection
+)
+
+# Run frequency domain plugin with larger FFT for better frequency resolution
+result <- runPlugin(
+  wave = audio,
+  key = "qm-vamp-plugins:qm-chromagram",
+  blockSize = 4096,  # Larger FFT for better frequency resolution
+  stepSize = 2048    # 50\% overlap (typical for frequency domain)
 )
 }
 }

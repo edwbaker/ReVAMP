@@ -13,6 +13,7 @@
 #include <vamp-hostsdk/PluginInputDomainAdapter.h>
 #include <vamp-hostsdk/PluginLoader.h>
 #include "system.h"
+#include "SimpleWavReader.h"
 
 using namespace Rcpp;
 
@@ -23,7 +24,7 @@ using Vamp::HostExt::PluginLoader;
 using Vamp::HostExt::PluginWrapper;
 using Vamp::HostExt::PluginInputDomainAdapter;
 
-double toSeconds(RealTime &time)
+double toSeconds(const RealTime &time)
 {
   return time.sec + double(time.nsec + 1) / 1000000000.0;
 }
@@ -44,11 +45,9 @@ void collectAllFeatures(int frame, int sr,
                         const Plugin::OutputList &outputs,
                         const Plugin::FeatureSet &features,
                         std::map<int, FeatureData> &allData,
-                        bool useFrames)
+                        bool useFrames,
+                        std::map<int, RealTime> &lastFeatureTime)
 {
-  // Track time for FixedSampleRate outputs with implicit timestamps
-  static std::map<int, RealTime> lastFeatureTime;
-  
   for (Plugin::FeatureSet::const_iterator fi = features.begin(); fi != features.end(); ++fi) {
     int outputNo = fi->first;
     
@@ -95,12 +94,12 @@ void collectAllFeatures(int frame, int sr,
       if (useFrames) {
         data.timestamp.push_back(RealTime::realTime2Frame(featureTime, sr));
       } else {
-        data.timestamp.push_back(toSeconds(const_cast<RealTime&>(featureTime)));
+        data.timestamp.push_back(toSeconds(featureTime));
       }
       
       // Store duration
       if (fli->hasDuration) {
-        data.duration.push_back(toSeconds(const_cast<RealTime&>(fli->duration)));
+        data.duration.push_back(toSeconds(fli->duration));
       } else {
         data.duration.push_back(NA_REAL);
       }
@@ -242,7 +241,7 @@ DataFrame vampPluginParams(std::string key) {
 }
 
 // [[Rcpp::export]]
-List runPlugin(std::string key, S4 wave, Nullable<List> params = R_NilValue, bool useFrames = false, Nullable<int> blockSize = R_NilValue, Nullable<int> stepSize = R_NilValue, bool verbose = false)
+List runPlugin(std::string key, RObject wave, Nullable<List> params = R_NilValue, bool useFrames = false, Nullable<int> blockSize = R_NilValue, Nullable<int> stepSize = R_NilValue, bool verbose = false)
 {
   PluginLoader *loader = PluginLoader::getInstance();
   
@@ -256,37 +255,83 @@ List runPlugin(std::string key, S4 wave, Nullable<List> params = R_NilValue, boo
   
   PluginLoader::PluginKey pluginKey = loader->composePluginKey(soname, id);
   
-  // Audio file info (extracted from Wave object, not from file)
+  // Audio file info
   struct {
     int samplerate;
     int64_t frames;
     int channels;
   } sfinfo = {0};
   
-  // Get sample rate from Wave object
-  sfinfo.samplerate = wave.slot("samp.rate");
+  bool useFile = false;
+  std::vector<float> fileData;
+  NumericVector left_channel;
+  NumericVector right_channel;
+  double scale_factor = 1.0;
+
+  if (wave.isS4()) {
+      S4 waveObj(wave);
+      // Get sample rate from Wave object
+      sfinfo.samplerate = waveObj.slot("samp.rate");
+      
+      // Determine channel count from Wave object
+      left_channel = waveObj.slot("left");
+      sfinfo.frames = left_channel.length();
+      
+      // Check if stereo (right channel exists and has data)
+      bool is_stereo = false;
+      try {
+        right_channel = waveObj.slot("right");
+        if (right_channel.length() > 0) {
+          is_stereo = true;
+        }
+      } catch(...) {
+        // Mono file - right channel doesn't exist
+        is_stereo = false;
+      }
+      sfinfo.channels = is_stereo ? 2 : 1;
+
+      // Check for PCM and bit depth to normalize
+      bool pcm = false;
+      try {
+          pcm = as<bool>(waveObj.slot("pcm"));
+      } catch(...) {
+          pcm = false; // Default to false if slot missing
+      }
+
+      if (pcm) {
+          int bit = 16;
+          try {
+              bit = as<int>(waveObj.slot("bit"));
+          } catch(...) {
+              bit = 16; // Default to 16 if slot missing
+          }
+          
+          if (bit == 8) scale_factor = 1.0 / 128.0; // 8-bit is usually unsigned 0-255, centered at 128. tuneR might handle this differently.
+          // tuneR 8-bit: "unsigned integer (0..255)". Center is 127 or 128.
+          // But let's assume standard PCM normalization for now.
+          // Actually, tuneR 8-bit might be 0-255. 
+          // If we want to be safe, we should check tuneR docs.
+          // For 16-bit (signed):
+          else if (bit == 16) scale_factor = 1.0 / 32768.0;
+          else if (bit == 24) scale_factor = 1.0 / 8388608.0;
+          else if (bit == 32) scale_factor = 1.0 / 2147483648.0;
+      }
+  } else if (is<CharacterVector>(wave)) {
+      std::string filename = as<std::string>(wave);
+      SimpleWavReader::Header header;
+      if (!SimpleWavReader::read(filename, fileData, header)) {
+          Rcpp::stop("Failed to read WAV file: " + filename);
+      }
+      sfinfo.samplerate = header.sampleRate;
+      sfinfo.channels = header.channels;
+      sfinfo.frames = fileData.size() / header.channels;
+      useFile = true;
+  } else {
+      Rcpp::stop("wave argument must be an S4 Wave object or a filename string");
+  }
   
   // Data structure to collect features for all outputs
   std::map<int, FeatureData> allFeatureData;
-  
-  // Determine channel count from Wave object
-  NumericVector left_channel = wave.slot("left");
-  sfinfo.frames = left_channel.length();
-  
-  // Check if stereo (right channel exists and has data)
-  bool is_stereo = false;
-  NumericVector right_channel;
-  try {
-    right_channel = wave.slot("right");
-    if (right_channel.length() > 0) {
-      is_stereo = true;
-    }
-  } catch(...) {
-    // Mono file - right channel doesn't exist
-    is_stereo = false;
-  }
-  
-  sfinfo.channels = is_stereo ? 2 : 1;
   
   // Use unique_ptr for automatic cleanup
   std::unique_ptr<Plugin, std::function<void(Plugin*)>> plugin(
@@ -400,7 +445,6 @@ List runPlugin(std::string key, S4 wave, Nullable<List> params = R_NilValue, boo
   RealTime adjustment = RealTime::zeroTime;
   
   // Declare these here to avoid goto issues
-  NumericVector left;
   int totalSamples = 0;
   int samplesRead = 0;
   
@@ -447,14 +491,11 @@ List runPlugin(std::string key, S4 wave, Nullable<List> params = R_NilValue, boo
   
   // Here we iterate over the frames, avoiding asking the numframes in case it's streaming input.
   
-  left = wave.slot("left");
-  totalSamples = left.length();
+  totalSamples = (int)sfinfo.frames;
   samplesRead = 0;
   
-  // Get right channel if stereo
-  if (channels == 2) {
-    right_channel = wave.slot("right");
-  }
+  // Track time for FixedSampleRate outputs with implicit timestamps
+  std::map<int, RealTime> lastFeatureTime;
 
   do {
     
@@ -467,9 +508,15 @@ List runPlugin(std::string key, S4 wave, Nullable<List> params = R_NilValue, boo
       
       // Put data into filebuf (interleaved for stereo)
       for (int i = 0; i < samplesToRead; i++) {
-        filebuf.get()[i * channels] = left[samplesRead + i];
-        if (channels == 2) {
-          filebuf.get()[i * channels + 1] = right_channel[samplesRead + i];
+        if (useFile) {
+             for (int c = 0; c < channels; ++c) {
+                 filebuf.get()[i * channels + c] = fileData[(samplesRead + i) * channels + c];
+             }
+        } else {
+            filebuf.get()[i * channels] = left_channel[samplesRead + i] * scale_factor;
+            if (channels == 2) {
+              filebuf.get()[i * channels + 1] = right_channel[samplesRead + i] * scale_factor;
+            }
         }
       }
       // Zero-pad if we don't have enough samples
@@ -491,9 +538,15 @@ List runPlugin(std::string key, S4 wave, Nullable<List> params = R_NilValue, boo
       
       int samplesToRead = std::min(actualStepSize, totalSamples - samplesRead);
       for (int i = 0; i < samplesToRead; i++) {
-        filebuf.get()[(overlapSize + i) * channels] = left[samplesRead + i];
-        if (channels == 2) {
-          filebuf.get()[(overlapSize + i) * channels + 1] = right_channel[samplesRead + i];
+        if (useFile) {
+             for (int c = 0; c < channels; ++c) {
+                 filebuf.get()[(overlapSize + i) * channels + c] = fileData[(samplesRead + i) * channels + c];
+             }
+        } else {
+            filebuf.get()[(overlapSize + i) * channels] = left_channel[samplesRead + i] * scale_factor;
+            if (channels == 2) {
+              filebuf.get()[(overlapSize + i) * channels + 1] = right_channel[samplesRead + i] * scale_factor;
+            }
         }
       }
       // Zero-pad if we don't have enough samples
@@ -535,7 +588,7 @@ List runPlugin(std::string key, S4 wave, Nullable<List> params = R_NilValue, boo
     // Collect features for ALL outputs
     collectAllFeatures
       (RealTime::realTime2Frame(rt + adjustment, sfinfo.samplerate),
-       sfinfo.samplerate, outputs, features, allFeatureData, useFrames);
+       sfinfo.samplerate, outputs, features, allFeatureData, useFrames, lastFeatureTime);
 
     if (verbose && sfinfo.frames > 0){
       int pp = progress;
@@ -559,7 +612,7 @@ List runPlugin(std::string key, S4 wave, Nullable<List> params = R_NilValue, boo
   
   // Collect remaining features for ALL outputs
   collectAllFeatures(RealTime::realTime2Frame(rt + adjustment, sfinfo.samplerate),
-                     sfinfo.samplerate, outputs, features, allFeatureData, useFrames);
+                     sfinfo.samplerate, outputs, features, allFeatureData, useFrames, lastFeatureTime);
   
   // Memory automatically cleaned up by smart pointers
   

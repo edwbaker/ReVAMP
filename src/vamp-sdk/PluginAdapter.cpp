@@ -38,6 +38,7 @@
 
 #include <cstring>
 #include <cstdlib>
+#include <Rcpp.h>
 
 #if ( VAMP_SDK_MAJOR_VERSION != 2 || VAMP_SDK_MINOR_VERSION != 5 )
 #error Unexpected version of Vamp SDK header included
@@ -170,12 +171,12 @@ PluginAdapterBase::Impl::getDescriptor()
     Plugin *plugin = m_base->createPlugin(48000);
   
     if (!plugin) {
-        std::cerr << "PluginAdapterBase::Impl::getDescriptor: Failed to create plugin" << std::endl;
+        Rcpp::Rcerr << "PluginAdapterBase::Impl::getDescriptor: Failed to create plugin" << std::endl;
         return 0;
     }
 
     if (plugin->getVampApiVersion() != VAMP_API_VERSION) {
-        std::cerr << "Vamp::PluginAdapterBase::Impl::getDescriptor: ERROR: "
+        Rcpp::Rcerr << "Vamp::PluginAdapterBase::Impl::getDescriptor: ERROR: "
                   << "API version " << plugin->getVampApiVersion()
                   << " for\nplugin \"" << plugin->getIdentifier() << "\" "
                   << "differs from version "
@@ -343,7 +344,7 @@ PluginAdapterBase::Impl::vampInstantiate(const VampPluginDescriptor *desc,
     }
 
     if (m_adapterMap->find(desc) == m_adapterMap->end()) {
-        std::cerr << "WARNING: PluginAdapterBase::Impl::vampInstantiate: Descriptor " << desc << " not in adapter map" << std::endl;
+        Rcpp::Rcerr << "WARNING: PluginAdapterBase::Impl::vampInstantiate: Descriptor " << desc << " not in adapter map" << std::endl;
         return 0;
     }
 

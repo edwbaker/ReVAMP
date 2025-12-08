@@ -46,26 +46,22 @@ audio <- readWave("myaudio.wav")
 
 # Run amplitude follower and get results as data frame
 result <- runPlugin(
-  myname = "analysis",
-  soname = "vamp-example-plugins",
-  id = "amplitudefollower",
-  output = "amplitude",
-  outputNo = 0,
   wave = audio,
-  outfilename = "",  # Empty string = no file output
+  key = "vamp-example-plugins:amplitudefollower",
   useFrames = FALSE  # Use timestamps in seconds
 )
 
 # Examine results
 str(result)
-#> 'data.frame':    1292 obs. of  4 variables:
-#>  $ timestamp: num  0.000 0.023 0.046 0.070 0.093 ...
-#>  $ duration : num  NA NA NA NA NA NA NA NA NA NA ...
-#>  $ value    : num  22866 22896 22735 22531 22380 ...
-#>  $ label    : chr  "" "" "" "" ...
+#> List of 1
+#>  $ amplitude:'data.frame':	1292 obs. of  4 variables:
+#>   ..$ timestamp: num [1:1292] 0 0.023 0.046 0.07 0.093 ...
+#>   ..$ duration : num [1:1292] NA NA NA NA NA ...
+#>   ..$ value    : num [1:1292] 22866 22896 22735 22531 22380 ...
+#>   ..$ label    : chr [1:1292] "" "" "" "" ...
 
 # Plot amplitude over time
-plot(result$timestamp, result$value, type = "l",
+plot(result$amplitude$timestamp, result$amplitude$value, type = "l",
      xlab = "Time (s)", ylab = "Amplitude",
      main = "Audio Amplitude")
 ```
@@ -78,22 +74,17 @@ Detect note onsets in audio:
 
 ``` r
 onsets <- runPlugin(
-  myname = "analysis",
-  soname = "vamp-aubio-plugins",
-  id = "aubioonset",
-  output = "onsets",
-  outputNo = 0,
   wave = audio,
-  outfilename = "",
+  key = "vamp-aubio-plugins:aubioonset",
   useFrames = FALSE
 )
 
 # View onset times
-print(onsets$timestamp)
+print(onsets$onsets$timestamp)
 
 # Plot onsets on waveform
 plot(audio)
-abline(v = onsets$timestamp * audio@samp.rate, col = "red", lty = 2)
+abline(v = onsets$onsets$timestamp * audio@samp.rate, col = "red", lty = 2)
 ```
 
 ### Tempo Detection
@@ -102,17 +93,12 @@ Estimate tempo (BPM):
 
 ``` r
 tempo <- runPlugin(
-  myname = "analysis",
-  soname = "vamp-aubio-plugins",
-  id = "aubiotempo",
-  output = "tempo",
-  outputNo = 0,
   wave = audio,
-  outfilename = "",
+  key = "vamp-aubio-plugins:aubiotempo",
   useFrames = FALSE
 )
 
-cat("Estimated tempo:", mean(tempo$value), "BPM\n")
+cat("Estimated tempo:", mean(tempo$tempo$value), "BPM\n")
 ```
 
 ### Spectral Centroid
@@ -121,17 +107,12 @@ Analyze spectral characteristics:
 
 ``` r
 centroid <- runPlugin(
-  myname = "analysis",
-  soname = "vamp-example-plugins",
-  id = "spectralcentroid",
-  output = "logcentroid",
-  outputNo = 0,
   wave = audio,
-  outfilename = "",
+  key = "vamp-example-plugins:spectralcentroid",
   useFrames = FALSE
 )
 
-plot(centroid$timestamp, centroid$value, type = "l",
+plot(centroid$logcentroid$timestamp, centroid$logcentroid$value, type = "l",
      xlab = "Time (s)", ylab = "Log Centroid",
      main = "Spectral Centroid Over Time")
 ```

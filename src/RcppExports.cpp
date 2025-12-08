@@ -52,13 +52,13 @@ BEGIN_RCPP
 END_RCPP
 }
 // runPlugin
-List runPlugin(std::string key, S4 wave, Nullable<List> params, bool useFrames, Nullable<int> blockSize, Nullable<int> stepSize, bool verbose);
+List runPlugin(std::string key, RObject wave, Nullable<List> params, bool useFrames, Nullable<int> blockSize, Nullable<int> stepSize, bool verbose);
 RcppExport SEXP _ReVAMP_runPlugin(SEXP keySEXP, SEXP waveSEXP, SEXP paramsSEXP, SEXP useFramesSEXP, SEXP blockSizeSEXP, SEXP stepSizeSEXP, SEXP verboseSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< std::string >::type key(keySEXP);
-    Rcpp::traits::input_parameter< S4 >::type wave(waveSEXP);
+    Rcpp::traits::input_parameter< RObject >::type wave(waveSEXP);
     Rcpp::traits::input_parameter< Nullable<List> >::type params(paramsSEXP);
     Rcpp::traits::input_parameter< bool >::type useFrames(useFramesSEXP);
     Rcpp::traits::input_parameter< Nullable<int> >::type blockSize(blockSizeSEXP);
