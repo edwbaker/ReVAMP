@@ -1,3 +1,3 @@
-# ReVAMP 1.0
+# ReVAMP 1.0.0
 
-* Preview release.
+* Initial CRAN release.
