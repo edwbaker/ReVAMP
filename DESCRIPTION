@@ -31,7 +31,7 @@ Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.3.3
 Encoding: UTF-8
 URL: 
-    http://revamp.ebaker.me.uk/,
+    https://revamp.ebaker.me.uk/,
     https://github.com/edwbaker/ReVAMP
 BugReports: https://github.com/edwbaker/ReVAMP/issues
 Language: en-US

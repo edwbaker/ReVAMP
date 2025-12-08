@@ -40,7 +40,6 @@ ReVAMP requires Vamp plugins to be installed separately. Popular plugin collecti
 - [Vamp Example Plugins](https://www.vamp-plugins.org/download.html) - Basic examples
 - [QM Vamp Plugins](https://www.vamp-plugins.org/download.html) - Queen Mary plugins
 - [Vamp Aubio Plugins](https://www.vamp-plugins.org/download.html) - Aubio feature extractors
-- [NNLS Chroma & Chordino](https://www.isophonics.net/nnls-chroma) - Chord detection
 
 See the [Vamp Paths vignette](vamp-paths.html) for details on plugin installation and search paths.
 
