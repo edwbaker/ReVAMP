@@ -33,8 +33,6 @@ collections include:
   Mary plugins
 - [Vamp Aubio Plugins](https://www.vamp-plugins.org/download.html) -
   Aubio feature extractors
-- [NNLS Chroma & Chordino](https://www.isophonics.net/nnls-chroma) -
-  Chord detection
 
 See the [Vamp Paths
 vignette](http://revamp.ebaker.me.uk/articles/vamp-paths.md) for details
