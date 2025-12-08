@@ -238,8 +238,20 @@ test_that("plugin output structure is consistent", {
     bit = 16
   )
   
+  # Check if the specific plugin is available
+  plugins <- vampPlugins()
+  plugin_key <- "vamp-example-plugins:amplitudefollower"
+  if (!plugin_key %in% plugins$id) {
+    # Try to find any available plugin
+    if (nrow(plugins) > 0) {
+      plugin_key <- plugins$id[1]
+    } else {
+      skip("No plugins available for testing")
+    }
+  }
+  
   output <- runPlugin(
-    key = "vamp-example-plugins:amplitudefollower",
+    key = plugin_key,
     wave = test_wave,
     params = NULL,
     useFrames = FALSE
@@ -293,8 +305,20 @@ test_that("plugins work with stereo audio", {
     bit = 16
   )
   
+  # Check if the specific plugin is available
+  plugins <- vampPlugins()
+  plugin_key <- "vamp-example-plugins:amplitudefollower"
+  if (!plugin_key %in% plugins$id) {
+    # Try to find any available plugin
+    if (nrow(plugins) > 0) {
+      plugin_key <- plugins$id[1]
+    } else {
+      skip("No plugins available for testing")
+    }
+  }
+  
   output <- runPlugin(
-    key = "vamp-example-plugins:amplitudefollower",
+    key = plugin_key,
     wave = stereo_wave,
     params = NULL,
     useFrames = FALSE

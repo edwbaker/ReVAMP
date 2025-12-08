@@ -62,16 +62,23 @@ test_that("runPlugin respects custom blockSize parameter", {
     bit = 16
   )
   
+  # Check if the specific plugin is available
+  plugins <- vampPlugins()
+  plugin_key <- "vamp-example-plugins:amplitudefollower"
+  if (!plugin_key %in% plugins$id) {
+    skip("vamp-example-plugins:amplitudefollower not available")
+  }
+  
   # Run with different block sizes
   result_512 <- runPlugin(
-    key = "vamp-example-plugins:amplitudefollower",
+    key = plugin_key,
     wave = wave,
     blockSize = 512,
     stepSize = 512
   )
   
   result_2048 <- runPlugin(
-    key = "vamp-example-plugins:amplitudefollower",
+    key = plugin_key,
     wave = wave,
     blockSize = 2048,
     stepSize = 2048
@@ -108,9 +115,16 @@ test_that("runPlugin respects custom stepSize with overlap", {
     bit = 16
   )
   
+  # Check if the specific plugin is available
+  plugins <- vampPlugins()
+  plugin_key <- "vamp-example-plugins:amplitudefollower"
+  if (!plugin_key %in% plugins$id) {
+    skip("vamp-example-plugins:amplitudefollower not available")
+  }
+  
   # Run with 50% overlap (step = block/2)
   result_overlap50 <- runPlugin(
-    key = "vamp-example-plugins:amplitudefollower",
+    key = plugin_key,
     wave = wave,
     blockSize = 1024,
     stepSize = 512  # 50% overlap
@@ -118,7 +132,7 @@ test_that("runPlugin respects custom stepSize with overlap", {
   
   # Run with no overlap (step = block)
   result_no_overlap <- runPlugin(
-    key = "vamp-example-plugins:amplitudefollower",
+    key = plugin_key,
     wave = wave,
     blockSize = 1024,
     stepSize = 1024
@@ -141,10 +155,22 @@ test_that("runPlugin rejects invalid block and step sizes", {
     bit = 16
   )
   
+  # Check if the specific plugin is available
+  plugins <- vampPlugins()
+  plugin_key <- "vamp-example-plugins:amplitudefollower"
+  if (!plugin_key %in% plugins$id) {
+    # Try to find any available plugin
+    if (nrow(plugins) > 0) {
+      plugin_key <- plugins$id[1]
+    } else {
+      skip("No plugins available for testing")
+    }
+  }
+  
   # Test negative blockSize
   expect_error(
     runPlugin(
-      key = "vamp-example-plugins:amplitudefollower",
+      key = plugin_key,
       wave = wave,
       blockSize = -512
     ),
@@ -154,7 +180,7 @@ test_that("runPlugin rejects invalid block and step sizes", {
   # Test zero blockSize
   expect_error(
     runPlugin(
-      key = "vamp-example-plugins:amplitudefollower",
+      key = plugin_key,
       wave = wave,
       blockSize = 0
     ),
