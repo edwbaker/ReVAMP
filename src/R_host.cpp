@@ -243,7 +243,7 @@ DataFrame vampPluginParams(std::string key) {
 }
 
 // [[Rcpp::export]]
-List runPlugin(std::string key, RObject wave, Nullable<List> params = R_NilValue, bool useFrames = false, Nullable<int> blockSize = R_NilValue, Nullable<int> stepSize = R_NilValue, bool verbose = false)
+List runPlugin(std::string key, RObject wave, Nullable<List> params = R_NilValue, bool useFrames = false, Nullable<int> blockSize = R_NilValue, Nullable<int> stepSize = R_NilValue, bool verbose = false, bool dropIncompleteFinalFrame = true)
 {
   PluginLoader *loader = PluginLoader::getInstance();
   
@@ -384,7 +384,7 @@ List runPlugin(std::string key, RObject wave, Nullable<List> params = R_NilValue
   }
   int overlapSize = actualBlockSize - actualStepSize;
   int64_t currentStep = 0;
-  int finalStepsRemaining = std::max(1, (actualBlockSize / actualStepSize) - 1);
+  int finalStepsRemaining = dropIncompleteFinalFrame ? 0 : std::max(1, (actualBlockSize / actualStepSize) - 1);
   
   // Use actual channel count from Wave object (PluginChannelAdapter will handle mismatches)
   int channels = sfinfo.channels;
@@ -577,7 +577,7 @@ List runPlugin(std::string key, RObject wave, Nullable<List> params = R_NilValue
     
     ++currentStep;
     
-  } while (finalStepsRemaining > 0);
+  } while (samplesRead < totalSamples || finalStepsRemaining > 0);
   
   if (verbose) {
     Rcpp::Rcerr << "\rDone" << std::endl;

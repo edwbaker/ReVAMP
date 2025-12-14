@@ -130,6 +130,10 @@ vampPluginParams <- function(key) {
 #'   time resolution but increase computation time.
 #' @param verbose Logical indicating whether to print progress messages and diagnostic
 #'   information during plugin execution. Default is FALSE for quiet operation.
+#' @param dropIncompleteFinalFrame Logical indicating whether to drop the final
+#'   analysis frame if it would require zero-padding due to insufficient samples.
+#'   Default is TRUE, meaning only complete frames are processed.
+#'   Set to FALSE to include zero-padded incomplete final frames.
 #' @return A named list of data frames, one for each output produced by the plugin.
 #'   The names correspond to the output identifiers (e.g., "amplitude", "onsets").
 #'   Each data frame contains columns for timestamp (or frame), duration, values, and
@@ -235,7 +239,7 @@ vampPluginParams <- function(key) {
 #' }
 #' @seealso \code{\link{vampPlugins}} to list available plugins,
 #'   \code{\link{vampPluginParams}} to get plugin parameters
-runPlugin <- function(wave, key, params = NULL, useFrames = FALSE, blockSize = NULL, stepSize = NULL, verbose = FALSE) {
-    .Call(`_ReVAMP_runPlugin`, key, wave, params, useFrames, blockSize, stepSize, verbose)
+runPlugin <- function(wave, key, params = NULL, useFrames = FALSE, blockSize = NULL, stepSize = NULL, verbose = FALSE, dropIncompleteFinalFrame = TRUE) {
+    .Call(`_ReVAMP_runPlugin`, key, wave, params, useFrames, blockSize, stepSize, verbose, dropIncompleteFinalFrame)
 }
 

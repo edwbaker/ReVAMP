@@ -26,3 +26,5 @@ src/*.so
 ^docs$
 ^pkgdown$
 ^performance_comparison\.R$
+^CRAN-SUBMISSION$
+^cran-comments\.md$

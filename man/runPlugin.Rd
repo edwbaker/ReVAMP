@@ -11,7 +11,8 @@ runPlugin(
   useFrames = FALSE,
   blockSize = NULL,
   stepSize = NULL,
-  verbose = FALSE
+  verbose = FALSE,
+  dropIncompleteFinalFrame = TRUE
 )
 }
 \arguments{
@@ -44,6 +45,11 @@ time resolution but increase computation time.}
 
 \item{verbose}{Logical indicating whether to print progress messages and diagnostic
 information during plugin execution. Default is FALSE for quiet operation.}
+
+\item{dropIncompleteFinalFrame}{Logical indicating whether to drop the final
+analysis frame if it would require zero-padding due to insufficient samples.
+Default is TRUE, meaning only complete frames are processed.
+Set to FALSE to include zero-padded incomplete final frames.}
 }
 \value{
 A named list of data frames, one for each output produced by the plugin.
