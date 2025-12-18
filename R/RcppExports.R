@@ -21,3 +21,7 @@ runPlugin <- function(key, wave, params = NULL, useFrames = FALSE, blockSize = N
     .Call(`_ReVAMP_runPlugin`, key, wave, params, useFrames, blockSize, stepSize, verbose, dropIncompleteFinalFrame)
 }
 
+runPlugins <- function(keys, wave, params = NULL, useFrames = FALSE, blockSize = NULL, stepSize = NULL, verbose = FALSE, dropIncompleteFinalFrame = TRUE) {
+    .Call(`_ReVAMP_runPlugins`, keys, wave, params, useFrames, blockSize, stepSize, verbose, dropIncompleteFinalFrame)
+}
+

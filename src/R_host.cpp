@@ -643,3 +643,380 @@ List runPlugin(std::string key, RObject wave, Nullable<List> params = R_NilValue
   
   return result;
 }
+
+// [[Rcpp::export]]
+List runPlugins(CharacterVector keys, RObject wave, Nullable<List> params = R_NilValue, bool useFrames = false, Nullable<int> blockSize = R_NilValue, Nullable<int> stepSize = R_NilValue, bool verbose = false, bool dropIncompleteFinalFrame = true)
+{
+  PluginLoader *loader = PluginLoader::getInstance();
+
+  // Convert keys to std::vector<string>
+  std::vector<std::string> keylist;
+  for (int i = 0; i < keys.size(); ++i) keylist.push_back(Rcpp::as<std::string>(keys[i]));
+
+  if (keylist.empty()) {
+    Rcpp::stop("No plugin keys provided");
+  }
+
+  // Audio file info (same as runPlugin)
+  struct {
+    int samplerate;
+    int64_t frames;
+    int channels;
+  } sfinfo = {0};
+
+  bool useFile = false;
+  std::vector<float> fileData;
+  NumericVector left_channel;
+  NumericVector right_channel;
+  double scale_factor = 1.0;
+
+  if (wave.isS4()) {
+      S4 waveObj(wave);
+      sfinfo.samplerate = waveObj.slot("samp.rate");
+
+      left_channel = waveObj.slot("left");
+      sfinfo.frames = left_channel.length();
+
+      bool is_stereo = false;
+      try {
+        right_channel = waveObj.slot("right");
+        if (right_channel.length() > 0) {
+          is_stereo = true;
+        }
+      } catch(...) {
+        is_stereo = false;
+      }
+      sfinfo.channels = is_stereo ? 2 : 1;
+
+      bool pcm = false;
+      try {
+          pcm = as<bool>(waveObj.slot("pcm"));
+      } catch(...) {
+          pcm = false;
+      }
+
+      if (pcm) {
+          int bit = 16;
+          try {
+              bit = as<int>(waveObj.slot("bit"));
+          } catch(...) {
+              bit = 16;
+          }
+          if (bit == 8) scale_factor = 1.0 / 128.0;
+          else if (bit == 16) scale_factor = 1.0 / 32768.0;
+          else if (bit == 24) scale_factor = 1.0 / 8388608.0;
+          else if (bit == 32) scale_factor = 1.0 / 2147483648.0;
+      }
+  } else if (is<CharacterVector>(wave)) {
+      std::string filename = as<std::string>(wave);
+      SimpleWavReader::Header header;
+      if (!SimpleWavReader::read(filename, fileData, header)) {
+          Rcpp::stop("Failed to read WAV file: " + filename);
+      }
+      sfinfo.samplerate = header.sampleRate;
+      sfinfo.channels = header.channels;
+      sfinfo.frames = fileData.size() / header.channels;
+      useFile = true;
+  } else {
+      Rcpp::stop("wave argument must be an S4 Wave object or a filename string");
+  }
+
+  int nplugins = (int)keylist.size();
+
+  // Load plugins and determine per-plugin preferred sizes
+  struct PluginState {
+    std::unique_ptr<Plugin, std::function<void(Plugin*)>> plugin;
+    Plugin::OutputList outputs;
+    std::map<int, FeatureData> allFeatureData;
+    std::map<int, RealTime> lastFeatureTime;
+    std::string key;
+    RealTime adjustment;
+  };
+
+  std::vector<std::unique_ptr<PluginState>> states;
+  states.reserve(nplugins);
+
+  std::vector<int> resolvedBlockSizes(nplugins);
+  std::vector<int> resolvedStepSizes(nplugins);
+
+  // Interpret params argument: can be list-of-lists or single list
+  std::vector<List> paramsForPlugin(nplugins);
+  if (params.isNotNull()) {
+    List p(params);
+    if (p.size() == 1) {
+      for (int i=0;i<nplugins;++i) paramsForPlugin[i] = p[0];
+    } else if (p.size() == nplugins) {
+      for (int i=0;i<nplugins;++i) paramsForPlugin[i] = p[i];
+    } else {
+      Rcpp::RObject namesObj = p.names();
+      if (!namesObj.isNULL()) {
+        CharacterVector names = Rcpp::as<CharacterVector>(namesObj);
+        for (int i=0;i<nplugins;++i) {
+          std::string k = keylist[i];
+          bool found=false;
+          for (int j=0;j<p.size();++j) {
+            if (Rcpp::as<std::string>(names[j]) == k) {
+              paramsForPlugin[i] = p[j];
+              found=true; break;
+            }
+          }
+          if (!found) paramsForPlugin[i] = List::create();
+        }
+      } else {
+        for (int i=0;i<nplugins;++i) paramsForPlugin[i] = List::create();
+      }
+    }
+  } else {
+    for (int i=0;i<nplugins;++i) paramsForPlugin[i] = List::create();
+  }
+
+  for (int i = 0; i < nplugins; ++i) {
+    std::string key = keylist[i];
+    size_t colonPos = key.find(':');
+    if (colonPos == std::string::npos) {
+      Rcpp::stop("Invalid plugin key format. Expected 'library:plugin'");
+    }
+    std::string soname = key.substr(0, colonPos);
+    std::string id = key.substr(colonPos + 1);
+    PluginLoader::PluginKey pluginKey = loader->composePluginKey(soname, id);
+
+    std::unique_ptr<Plugin, std::function<void(Plugin*)>> plugin(
+      loader->loadPlugin(pluginKey, sfinfo.samplerate, PluginLoader::ADAPT_ALL_SAFE),
+      [](Plugin* p){ delete p; }
+    );
+    if (!plugin) {
+      Rcpp::stop("Failed to load plugin '" + key + "'");
+    }
+
+    int actualBlockSize;
+    int actualStepSize;
+
+    if (blockSize.isNotNull()) {
+      actualBlockSize = as<int>(blockSize);
+      if (actualBlockSize <= 0) Rcpp::stop("blockSize must be positive");
+    } else {
+      actualBlockSize = plugin->getPreferredBlockSize();
+      if (actualBlockSize == 0) actualBlockSize = 1024;
+    }
+    if (stepSize.isNotNull()) {
+      actualStepSize = as<int>(stepSize);
+      if (actualStepSize <= 0) Rcpp::stop("stepSize must be positive");
+    } else {
+      actualStepSize = plugin->getPreferredStepSize();
+      if (actualStepSize == 0) {
+        if (plugin->getInputDomain() == Plugin::FrequencyDomain) actualStepSize = actualBlockSize/2;
+        else actualStepSize = actualBlockSize;
+      }
+    }
+
+    if (actualStepSize > actualBlockSize) {
+      if (plugin->getInputDomain() == Plugin::FrequencyDomain) actualBlockSize = actualStepSize * 2;
+      else actualBlockSize = actualStepSize;
+    }
+
+    resolvedBlockSizes[i] = actualBlockSize;
+    resolvedStepSizes[i] = actualStepSize;
+
+    auto st = std::unique_ptr<PluginState>(new PluginState());
+    st->plugin = std::move(plugin);
+    st->outputs = st->plugin->getOutputDescriptors();
+    st->key = key;
+    states.push_back(std::move(st));
+  }
+
+  // Ensure all block/step sizes are equal
+  for (int i=1;i<nplugins;++i) {
+    if (resolvedBlockSizes[i] != resolvedBlockSizes[0] || resolvedStepSizes[i] != resolvedStepSizes[0]) {
+      Rcpp::stop("All plugins must have the same blockSize and stepSize (or provide explicit blockSize/stepSize that matches for all plugins)");
+    }
+  }
+
+  int actualBlockSize = resolvedBlockSizes[0];
+  int actualStepSize = resolvedStepSizes[0];
+  int overlapSize = actualBlockSize - actualStepSize;
+  int64_t currentStep = 0;
+  int finalStepsRemaining = dropIncompleteFinalFrame ? 0 : std::max(1, (actualBlockSize / actualStepSize) - 1);
+
+  int channels = sfinfo.channels;
+
+  std::unique_ptr<float[]> filebuf(new float[actualBlockSize * channels]);
+  std::vector<std::unique_ptr<float[]>> plugbuf(channels);
+  for (int c = 0; c < channels; ++c) {
+    plugbuf[c].reset(new float[actualBlockSize + 2]);
+  }
+  std::vector<float*> plugbuf_raw(channels);
+
+  if (verbose) {
+    Rcpp::Rcerr << "Using block size = " << actualBlockSize << ", step size = " << actualStepSize << std::endl;
+  }
+
+  // initialise each plugin, set params
+  for (int i=0;i<nplugins;++i) {
+    Plugin *p = states[i]->plugin.get();
+    if (paramsForPlugin[i].size() > 0) {
+      List paramList(paramsForPlugin[i]);
+      CharacterVector paramNames = paramList.names();
+      for (int j=0;j<paramList.size();++j) {
+        std::string paramId = Rcpp::as<std::string>(paramNames[j]);
+        float paramValue = Rcpp::as<float>(paramList[j]);
+        try { p->setParameter(paramId, paramValue); } catch(...) { }
+      }
+    }
+    if (!p->initialise(channels, actualStepSize, actualBlockSize)) {
+      Rcpp::stop("Plugin initialise failed for '" + states[i]->key + "' (channels = " + std::to_string(channels) + ", stepSize = " + std::to_string(actualStepSize) + ", blockSize = " + std::to_string(actualBlockSize) + ")");
+    }
+    // store per-plugin timestamp adjustment if available (as single-plugin path does)
+    PluginWrapper *wrapper = dynamic_cast<PluginWrapper *>(p);
+    states[i]->adjustment = RealTime::zeroTime;
+    if (wrapper) {
+      PluginInputDomainAdapter *ida = wrapper->getWrapper<PluginInputDomainAdapter>();
+      if (ida) states[i]->adjustment = ida->getTimestampAdjustment();
+    }
+  }
+
+  int totalSamples = (int)sfinfo.frames;
+  int samplesRead = 0;
+
+  // Track progress
+  int progress = 0;
+
+  RealTime rt;
+
+  // Main processing loop: read audio once, pass to every plugin
+  do {
+    int count = 0;
+    if ((actualBlockSize==actualStepSize) || (currentStep==0)) {
+      int samplesToRead = std::min(actualBlockSize, totalSamples - samplesRead);
+      if (useFile) {
+        if (samplesToRead > 0) {
+          std::memcpy(filebuf.get(), &fileData[samplesRead * channels], samplesToRead * channels * sizeof(float));
+        }
+      } else {
+        double *lptr = &left_channel[0];
+        double *rptr = (channels == 2) ? &right_channel[0] : nullptr;
+        for (int i = 0; i < samplesToRead; ++i) {
+          filebuf.get()[i * channels] = static_cast<float>(lptr[samplesRead + i] * scale_factor);
+          if (channels == 2) filebuf.get()[i * channels + 1] = static_cast<float>(rptr[samplesRead + i] * scale_factor);
+        }
+      }
+      for (int i = samplesToRead; i < actualBlockSize; i++) {
+        filebuf.get()[i * channels] = 0.0f;
+        if (channels == 2) filebuf.get()[i * channels + 1] = 0.0f;
+      }
+      count = samplesToRead;
+      samplesRead += count;
+      if (count != actualBlockSize) --finalStepsRemaining;
+    } else {
+      memmove(filebuf.get(), filebuf.get() + (actualStepSize * channels), overlapSize * channels * sizeof(float));
+      int samplesToRead = std::min(actualStepSize, totalSamples - samplesRead);
+      if (useFile) {
+        if (samplesToRead > 0) {
+          std::memcpy(filebuf.get() + overlapSize * channels, &fileData[samplesRead * channels], samplesToRead * channels * sizeof(float));
+        }
+      } else {
+        double *lptr = &left_channel[0];
+        double *rptr = (channels == 2) ? &right_channel[0] : nullptr;
+        for (int i = 0; i < samplesToRead; ++i) {
+          filebuf.get()[(overlapSize + i) * channels] = static_cast<float>(lptr[samplesRead + i] * scale_factor);
+          if (channels == 2) filebuf.get()[(overlapSize + i) * channels + 1] = static_cast<float>(rptr[samplesRead + i] * scale_factor);
+        }
+      }
+      for (int i = samplesToRead; i < actualStepSize; i++) {
+        filebuf.get()[(overlapSize + i) * channels] = 0.0f;
+        if (channels == 2) filebuf.get()[(overlapSize + i) * channels + 1] = 0.0f;
+      }
+      count = overlapSize + samplesToRead;
+      samplesRead += actualStepSize;
+      if (samplesToRead != actualStepSize) --finalStepsRemaining;
+    }
+
+    // De-interleave audio data for plugin (pointer-stepping copy)
+    for (int c = 0; c < channels; ++c) {
+      float *dest = plugbuf[c].get();
+      float *src = filebuf.get() + c;
+      int j = 0;
+      for (; j < count; ++j) {
+        dest[j] = *src;
+        src += channels;
+      }
+      for (; j < actualBlockSize; ++j) dest[j] = 0.0f;
+    }
+
+    rt = RealTime::frame2RealTime(currentStep * actualStepSize, sfinfo.samplerate);
+
+    for (int c = 0; c < channels; ++c) plugbuf_raw[c] = plugbuf[c].get();
+
+    // Run each plugin on the same block; compute adjusted frame per-plugin
+    for (int pi=0; pi<nplugins; ++pi) {
+      Plugin *p = states[pi]->plugin.get();
+      Plugin::FeatureSet features = p->process(plugbuf_raw.data(), rt);
+      RealTime adj_rt = rt + states[pi]->adjustment;
+      int frame_for_features = RealTime::realTime2Frame(adj_rt, sfinfo.samplerate);
+      collectAllFeatures(frame_for_features, sfinfo.samplerate, states[pi]->outputs, features, states[pi]->allFeatureData, useFrames, states[pi]->lastFeatureTime);
+    }
+
+    if (verbose && sfinfo.frames > 0) {
+      int pp = progress;
+      progress = static_cast<int>((float(currentStep * actualStepSize) / sfinfo.frames) * 100.f + 0.5f);
+      if (progress != pp) {
+        Rcpp::Rcerr << "\r" << progress << "%";
+      }
+    }
+
+    ++currentStep;
+  } while (samplesRead < totalSamples || finalStepsRemaining > 0);
+
+  if (verbose) Rcpp::Rcerr << "\rDone" << std::endl;
+
+  rt = RealTime::frame2RealTime(currentStep * actualStepSize, sfinfo.samplerate);
+
+  // Get remaining features for each plugin
+  for (int pi=0; pi<nplugins; ++pi) {
+    Plugin *p = states[pi]->plugin.get();
+    Plugin::FeatureSet features = p->getRemainingFeatures();
+    collectAllFeatures(RealTime::realTime2Frame(rt, sfinfo.samplerate), sfinfo.samplerate, states[pi]->outputs, features, states[pi]->allFeatureData, useFrames, states[pi]->lastFeatureTime);
+  }
+
+  // Build result: a list per plugin, each a named list of outputs
+  List result;
+  for (int pi=0; pi<nplugins; ++pi) {
+    List pluginResult;
+    for (auto &pair : states[pi]->allFeatureData) {
+      FeatureData &featureData = pair.second;
+      DataFrame df;
+      if (featureData.timestamp.empty()) {
+        df = DataFrame::create(
+          Named("timestamp") = NumericVector::create(),
+          Named("duration") = NumericVector::create(),
+          Named("label") = CharacterVector::create()
+        );
+      } else {
+        List valueColumns;
+        std::vector<std::string> colNames(featureData.numValueCols);
+        for (int i = 0; i < featureData.numValueCols; i++) {
+          NumericVector col(featureData.timestamp.size(), NA_REAL);
+          for (size_t j = 0; j < featureData.values.size(); j++) {
+            if (i < static_cast<int>(featureData.values[j].size())) {
+              col[j] = featureData.values[j][i];
+            }
+          }
+          colNames[i] = (featureData.numValueCols > 1) ? "value" + std::to_string(i + 1) : "value";
+          valueColumns[colNames[i]] = col;
+        }
+        List columns;
+        columns["timestamp"] = wrap(featureData.timestamp);
+        columns["duration"] = wrap(featureData.duration);
+        for (int i = 0; i < featureData.numValueCols; i++) {
+          columns[colNames[i]] = valueColumns[colNames[i]];
+        }
+        columns["label"] = wrap(featureData.label);
+        df = DataFrame(columns);
+      }
+      pluginResult[featureData.outputIdentifier] = df;
+    }
+    // name the plugin entry by its key
+    result[states[pi]->key] = pluginResult;
+  }
+
+  return result;
+}

@@ -69,6 +69,24 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// runPlugins
+List runPlugins(CharacterVector keys, RObject wave, Nullable<List> params, bool useFrames, Nullable<int> blockSize, Nullable<int> stepSize, bool verbose, bool dropIncompleteFinalFrame);
+RcppExport SEXP _ReVAMP_runPlugins(SEXP keysSEXP, SEXP waveSEXP, SEXP paramsSEXP, SEXP useFramesSEXP, SEXP blockSizeSEXP, SEXP stepSizeSEXP, SEXP verboseSEXP, SEXP dropIncompleteFinalFrameSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< CharacterVector >::type keys(keysSEXP);
+    Rcpp::traits::input_parameter< RObject >::type wave(waveSEXP);
+    Rcpp::traits::input_parameter< Nullable<List> >::type params(paramsSEXP);
+    Rcpp::traits::input_parameter< bool >::type useFrames(useFramesSEXP);
+    Rcpp::traits::input_parameter< Nullable<int> >::type blockSize(blockSizeSEXP);
+    Rcpp::traits::input_parameter< Nullable<int> >::type stepSize(stepSizeSEXP);
+    Rcpp::traits::input_parameter< bool >::type verbose(verboseSEXP);
+    Rcpp::traits::input_parameter< bool >::type dropIncompleteFinalFrame(dropIncompleteFinalFrameSEXP);
+    rcpp_result_gen = Rcpp::wrap(runPlugins(keys, wave, params, useFrames, blockSize, stepSize, verbose, dropIncompleteFinalFrame));
+    return rcpp_result_gen;
+END_RCPP
+}
 
 static const R_CallMethodDef CallEntries[] = {
     {"_ReVAMP_vampInfo", (DL_FUNC) &_ReVAMP_vampInfo, 0},
@@ -76,6 +94,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_ReVAMP_vampPlugins", (DL_FUNC) &_ReVAMP_vampPlugins, 0},
     {"_ReVAMP_vampPluginParams", (DL_FUNC) &_ReVAMP_vampPluginParams, 1},
     {"_ReVAMP_runPlugin", (DL_FUNC) &_ReVAMP_runPlugin, 8},
+    {"_ReVAMP_runPlugins", (DL_FUNC) &_ReVAMP_runPlugins, 8},
     {NULL, NULL, 0}
 };
 
