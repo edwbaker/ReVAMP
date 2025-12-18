@@ -56,7 +56,8 @@ audio feature extraction and analysis.</p>
 <span>  useFrames <span class="op">=</span> <span class="cn">FALSE</span>,</span>
 <span>  blockSize <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  stepSize <span class="op">=</span> <span class="cn">NULL</span>,</span>
-<span>  verbose <span class="op">=</span> <span class="cn">FALSE</span></span>
+<span>  verbose <span class="op">=</span> <span class="cn">FALSE</span>,</span>
+<span>  dropIncompleteFinalFrame <span class="op">=</span> <span class="cn">TRUE</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
 
@@ -106,6 +107,13 @@ time resolution but increase computation time.</p></dd>
 <dt id="arg-verbose">verbose<a class="anchor" aria-label="anchor" href="#arg-verbose"></a></dt>
 <dd><p>Logical indicating whether to print progress messages and diagnostic
 information during plugin execution. Default is FALSE for quiet operation.</p></dd>
+
+
+<dt id="arg-dropincompletefinalframe">dropIncompleteFinalFrame<a class="anchor" aria-label="anchor" href="#arg-dropincompletefinalframe"></a></dt>
+<dd><p>Logical indicating whether to drop the final
+analysis frame if it would require zero-padding due to insufficient samples.
+Default is TRUE, meaning only complete frames are processed.
+Set to FALSE to include zero-padded incomplete final frames.</p></dd>
 
 </dl></div>
     <div class="section level2">
