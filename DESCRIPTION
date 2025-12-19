@@ -17,7 +17,7 @@ Authors@R:
 Copyright: See the file COPYRIGHTS
 Description: Provides an interface to the 'Vamp' audio analysis plugin system
     <https://www.vamp-plugins.org/> developed by Queen Mary University of London's 
-    Centre for Digital Music. Enables loading and running Vamp plugins for various audio analysis
+    Centre for Digital Music. Enables loading and running 'Vamp' plugins for various audio analysis
     tasks including tempo detection, onset detection, spectral analysis, and
     audio feature extraction. Supports mono and stereo audio with automatic
     channel adaptation and domain conversion.
