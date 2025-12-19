@@ -1,7 +1,7 @@
 # ReVAMP - R Interface to Vamp Audio Analysis Plugins <a href="http://revamp.ebaker.me.uk/"><img src="man/figures/logo.png" alt="ReVAMP website" align="right" height="120"/></a>
 
 <!-- badges: start -->
-
+[![CRAN Version](https://www.r-pkg.org/badges/version/ReVAMP)](https://cran.r-project.org/package=ReVAMP) [![CRAN Downloads](https://cranlogs.r-pkg.org/badges/grand-total/ReVAMP)]() [![](http://cranlogs.r-pkg.org/badges/last-week/ReVAMP?color=green)](https://cran.r-project.org/package=ReVAMP)
 <!-- badges: end -->
 
 ReVAMP provides an R interface to the [Vamp audio analysis plugin system](https://www.vamp-plugins.org/) developed by Queen Mary University of London's Centre for Digital Music. It enables R users to load and run Vamp plugins for tasks like tempo detection, onset detection, spectral analysis, and feature extraction.
@@ -14,6 +14,12 @@ ReVAMP provides an R interface to the [Vamp audio analysis plugin system](https:
 ## Installation
 
 ### Install R Package
+
+Install from CRAN:
+
+``` r
+install.packages("ReVAMP")
+```
 
 Install from source:
 
