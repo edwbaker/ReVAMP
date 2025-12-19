@@ -17,6 +17,12 @@ detection, spectral analysis, and feature extraction.
 
 ### Install R Package
 
+Install from CRAN:
+
+``` r
+install.packages("ReVAMP")
+```
+
 Install from source:
 
 ``` r
