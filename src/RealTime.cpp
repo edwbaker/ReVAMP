@@ -33,7 +33,7 @@
     use or other dealings in this Software without prior written
     authorization.
 */
-
+ 
 #include <vamp-hostsdk/RealTime.h>
-#include "vamp-sdk/RealTime.cpp"
+#include "RealTime_impl.cpp"
 
