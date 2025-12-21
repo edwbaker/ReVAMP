@@ -652,7 +652,7 @@ PluginLoader::Impl::listFiles(string dir, string extension)
     struct dirent *e = 0;
     while ((e = readdir(d))) {
  
-        if (!e->d_name) continue;
+        if (e->d_name[0] == '\0') continue;
        
         size_t len = strlen(e->d_name);
         if (len < extlen + 2 ||
