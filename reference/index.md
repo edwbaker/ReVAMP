@@ -7,6 +7,8 @@
   Interface to Vamp Audio Analysis Plugins
 - [`runPlugin()`](http://revamp.ebaker.me.uk/reference/runPlugin.md) :
   Run a Vamp Plugin on Audio Data
+- [`runPlugins()`](http://revamp.ebaker.me.uk/reference/runPlugins.md) :
+  Run Multiple Vamp Plugins on Audio Data in a Single Pass
 - [`vampInfo()`](http://revamp.ebaker.me.uk/reference/vampInfo.md) : Get
   Vamp API and SDK Version Information
 - [`vampPaths()`](http://revamp.ebaker.me.uk/reference/vampPaths.md) :
