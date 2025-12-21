@@ -8,6 +8,7 @@
 #ifndef _WIN32
 #include <sys/time.h>
 #endif
+#include <climits>
 
 #include <vamp-sdk/RealTime.h>
 #include <iostream>
