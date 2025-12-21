@@ -1,14 +1,8 @@
 # ReVAMP: Interface to Vamp Audio Analysis Plugin
 
-## Resubmission notes
+## Submission notes
 
-Fixed:  Please omit the redundant "R" at the start of your title and description
-
-Created: inst/COPYRIGHTS to include all code components
-
-Copyright holders also added to DESCRIPTION
-
-Link to vamp plugins website in DESCRIPTION
+Fixed:  Warning on gcc15 build
 
 ## R CMD check results
 
