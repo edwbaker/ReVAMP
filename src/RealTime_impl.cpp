@@ -1,3 +1,5 @@
+//Re-implementation of RealTime to fix clang-ubsan issues
+
 #if (__GNUC__ < 3)
 #include <strstream>
 #define stringstream strstream
@@ -9,9 +11,8 @@
 #include <sys/time.h>
 #endif
 #include <climits>
-
+#include <Rcpp.h>
 #include <vamp-sdk/RealTime.h>
-#include <iostream>
 
 _VAMP_SDK_PLUGSPACE_BEGIN(RealTime.cpp)
 
@@ -35,7 +36,7 @@ RealTime
 RealTime::fromSeconds(double sec)
 {
     if (sec != sec) { // NaN
-        std::cerr << "ERROR: NaN/Inf passed to Vamp::RealTime::fromSeconds" << std::endl;
+        Rcpp::Rcerr << "ERROR: NaN/Inf passed to Vamp::RealTime::fromSeconds" << std::endl;
         return RealTime::zeroTime;
     } else if (sec >= 0) {
         return RealTime(int(sec), int((sec - int(sec)) * ONE_BILLION + 0.5));
