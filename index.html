@@ -75,7 +75,7 @@
 <li>
 <strong>Comprehensive Plugin Support</strong>: Access to 100+ Vamp plugins for audio analysis</li>
 <li>
-<strong>Data Frame Output</strong>: Results returned as R data frames for easy analysis and visualization</li>
+<strong>Data Frame Output</strong>: Results returned as a list of R data frames for easy analysis and visualization</li>
 </ul>
 </div>
 <div class="section level2">
@@ -204,20 +204,6 @@
 <span><span class="fu"><a href="https://rdrr.io/r/utils/View.html" class="external-link">View</a></span><span class="op">(</span><span class="va">params</span><span class="op">)</span></span></code></pre></div>
 </div>
 <div class="section level2">
-<h2 id="architecture">Architecture<a class="anchor" aria-label="anchor" href="#architecture"></a>
-</h2>
-<p>ReVAMP consists of three layers:</p>
-<ol style="list-style-type: decimal">
-<li>
-<strong>Vamp Plugin SDK</strong> (<code>inst/vamp/</code>): C++ libraries defining the Vamp plugin interface</li>
-<li>
-<strong>Vamp Host SDK</strong> (<code>src/Plugin*.cpp</code>): C++ host implementation that loads and manages plugins</li>
-<li>
-<strong>R Interface</strong> (<code>src/R_host.cpp</code>): Rcpp bindings exposing functionality to R</li>
-</ol>
-<p>Key features: - <strong>PluginLoader</strong>: Discovers and loads Vamp plugins from system directories - <strong>Plugin Adapters</strong>: Automatically handle channel mixing, domain conversion (time/frequency), and buffering - <strong>DataFrame Output</strong>: Collects features in memory and returns structured data to R</p>
-</div>
-<div class="section level2">
 <h2 id="audio-data-flow">Audio Data Flow<a class="anchor" aria-label="anchor" href="#audio-data-flow"></a>
 </h2>
 <ol style="list-style-type: decimal">
@@ -228,9 +214,7 @@
 <li>
 <strong>Processing</strong>: Fed block-by-block to Vamp plugins with automatic adaptation</li>
 <li>
-<strong>Output</strong>: Collected in memory and returned as DataFrame to R</li>
-<li>
-<strong>Optional File</strong>: Can also write to CSV file if <code>outfilename</code> is provided</li>
+<strong>Output</strong>: Collected in memory and returned as a list of DataFrames to R</li>
 </ol>
 </div>
 <div class="section level2">

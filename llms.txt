@@ -10,8 +10,8 @@ detection, spectral analysis, and feature extraction.
 
 - **Comprehensive Plugin Support**: Access to 100+ Vamp plugins for
   audio analysis
-- **Data Frame Output**: Results returned as R data frames for easy
-  analysis and visualization
+- **Data Frame Output**: Results returned as a list of R data frames for
+  easy analysis and visualization
 
 ## Installation
 
@@ -143,22 +143,6 @@ params <- vampPluginParams("vamp-aubio-plugins:aubioonset")
 View(params)
 ```
 
-## Architecture
-
-ReVAMP consists of three layers:
-
-1.  **Vamp Plugin SDK** (`inst/vamp/`): C++ libraries defining the Vamp
-    plugin interface
-2.  **Vamp Host SDK** (`src/Plugin*.cpp`): C++ host implementation that
-    loads and manages plugins
-3.  **R Interface** (`src/R_host.cpp`): Rcpp bindings exposing
-    functionality to R
-
-Key features: - **PluginLoader**: Discovers and loads Vamp plugins from
-system directories - **Plugin Adapters**: Automatically handle channel
-mixing, domain conversion (time/frequency), and buffering - **DataFrame
-Output**: Collects features in memory and returns structured data to R
-
 ## Audio Data Flow
 
 1.  **Input**: [`tuneR::Wave`](https://rdrr.io/pkg/tuneR/man/Wave.html)
@@ -166,9 +150,8 @@ Output**: Collects features in memory and returns structured data to R
 2.  **Conversion**: Extracted to float buffers in C++
 3.  **Processing**: Fed block-by-block to Vamp plugins with automatic
     adaptation
-4.  **Output**: Collected in memory and returned as DataFrame to R
-5.  **Optional File**: Can also write to CSV file if `outfilename` is
-    provided
+4.  **Output**: Collected in memory and returned as a list of DataFrames
+    to R
 
 ## Development
 
