@@ -12,7 +12,8 @@ runPlugins(
   blockSize = NULL,
   stepSize = NULL,
   verbose = FALSE,
-  dropIncompleteFinalFrame = TRUE
+  dropIncompleteFinalFrame = TRUE,
+  segmentLength = NULL
 )
 }
 \arguments{
@@ -23,6 +24,12 @@ runPlugins(
 \item{params}{Optional list of parameter lists (either a list-of-lists, a single list applied to all, or a named list keyed by plugin key).}
 
 \item{useFrames, blockSize, stepSize, verbose, dropIncompleteFinalFrame}{Same semantics as \code{runPlugin}.}
+
+\item{segmentLength}{Optional numeric specifying the segment length in seconds.
+If provided, the audio will be processed in segments of this length, and
+the output data frames will include a \code{segment} column (1-indexed).
+Timestamps within each segment are reset to start from 0. The plugin state
+is reset between segments. If NULL (default), no segmentation is performed.}
 }
 \value{
 A named list where each element corresponds to a plugin key and contains that plugin's outputs (same structure as \code{runPlugin}).

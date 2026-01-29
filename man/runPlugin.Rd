@@ -12,7 +12,8 @@ runPlugin(
   blockSize = NULL,
   stepSize = NULL,
   verbose = FALSE,
-  dropIncompleteFinalFrame = TRUE
+  dropIncompleteFinalFrame = TRUE,
+  segmentLength = NULL
 )
 }
 \arguments{
@@ -50,13 +51,19 @@ information during plugin execution. Default is FALSE for quiet operation.}
 analysis frame if it would require zero-padding due to insufficient samples.
 Default is TRUE, meaning only complete frames are processed.
 Set to FALSE to include zero-padded incomplete final frames.}
+
+\item{segmentLength}{Optional numeric specifying the segment length in seconds.
+If provided, the audio will be processed in segments of this length, and
+the output data frames will include a \code{segment} column (1-indexed).
+Timestamps within each segment are reset to start from 0. The plugin state
+is reset between segments. If NULL (default), no segmentation is performed.}
 }
 \value{
 A named list of data frames, one for each output produced by the plugin.
 The names correspond to the output identifiers (e.g., "amplitude", "onsets").
 Each data frame contains columns for timestamp (or frame), duration, values, and
-labels (if applicable). If the plugin has only one output, the list will have
-one element.
+labels (if applicable). If segmentLength is specified, a \code{segment} column
+is also included. If the plugin has only one output, the list will have one element.
 }
 \description{
 Executes a Vamp audio analysis plugin on a Wave object and returns all
@@ -88,9 +95,20 @@ Typical values: blockSize/2 (50\\% overlap), blockSize/4 (75\\% overlap).
 Smaller = better time resolution, more computation.
 }
 
+\strong{Segmentation:}
+
+When \code{segmentLength} is specified, the audio is processed in fixed-length
+segments. This is useful for:
+\itemize{
+\item Computing per-minute or per-second statistics on long recordings
+\item Ensuring plugin state is reset at regular intervals
+\item Analyzing files where you need results grouped by time period
+}
+
 Each output data frame typically includes:
 \itemize{
-\item \strong{timestamp}: Time or frame number of the feature
+\item \strong{segment}: Segment index (1-based), only present when segmentLength is set
+\item \strong{timestamp}: Time or frame number of the feature (relative to segment start)
 \item \strong{duration}: Duration of the feature (if applicable, otherwise NA)
 \item \strong{value/value1/value2/...}: Feature values (number of columns varies)
 \item \strong{label}: Text label for the feature (if applicable, otherwise empty)
@@ -160,6 +178,21 @@ result <- runPlugin(
   blockSize = 4096,  # Larger FFT for better frequency resolution
   stepSize = 2048    # 50\% overlap (typical for frequency domain)
 )
+
+# Process a long recording in 60-second segments
+result <- runPlugin(
+  wave = "long_recording.wav",
+  key = "vamp-example-plugins:amplitudefollower",
+  segmentLength = 60  # 60-second segments
+)
+
+# Output now includes segment column
+head(result$amplitude)
+#   segment timestamp duration value label
+# 1       1      0.00       NA  0.12
+# 2       1      0.02       NA  0.15
+# ...
+# 50      2      0.00       NA  0.08  # Segment 2 starts, timestamp resets
 }
 }
 \seealso{
