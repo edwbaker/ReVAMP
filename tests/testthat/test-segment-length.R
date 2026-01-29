@@ -39,7 +39,7 @@ test_that("runPlugin without segmentLength works unchanged", {
   expect_true("timestamp" %in% names(output_df))
 })
 
-test_that("runPlugin with segmentLength adds segment column", {
+test_that("runPlugin with segmentLength adds segment columns", {
   skip_if_not(length(vampPaths()) > 0, "No Vamp plugin paths available")
   
   plugins <- vampPlugins()
@@ -58,17 +58,33 @@ test_that("runPlugin with segmentLength adds segment column", {
     segmentLength = 1
   )
   
-  # Check result structure - should have segment column
+  # Check result structure - should have segment columns
   expect_type(result, "list")
   expect_true(length(result) > 0)
   
   output_df <- result[[1]]
   expect_true("segment" %in% names(output_df))
+  expect_true("segment_start" %in% names(output_df))
+  expect_true("segment_duration" %in% names(output_df))
   expect_true("timestamp" %in% names(output_df))
   
   # Should have segments 1, 2, 3 for 3 seconds
   segments <- unique(output_df$segment)
   expect_true(all(c(1, 2, 3) %in% segments))
+  
+  # Check segment_start values are correct
+  seg1_rows <- output_df[output_df$segment == 1, ]
+  seg2_rows <- output_df[output_df$segment == 2, ]
+  seg3_rows <- output_df[output_df$segment == 3, ]
+  
+  expect_true(all(seg1_rows$segment_start == 0))
+  expect_true(all(seg2_rows$segment_start == 1))
+  expect_true(all(seg3_rows$segment_start == 2))
+  
+  # Check segment_duration values are correct (should be 1 second each)
+  expect_true(all(abs(seg1_rows$segment_duration - 1) < 0.01))
+  expect_true(all(abs(seg2_rows$segment_duration - 1) < 0.01))
+  expect_true(all(abs(seg3_rows$segment_duration - 1) < 0.01))
 })
 
 test_that("segmentLength resets timestamps per segment", {

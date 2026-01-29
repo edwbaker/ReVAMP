@@ -37,6 +37,8 @@ struct FeatureData {
   std::vector<std::string> label;
   std::vector<std::vector<float>> values;
   std::vector<int> segment;  // Segment index (1-based), only used when segmentLength is set
+  std::vector<double> segment_start;  // Segment start time in seconds from file start
+  std::vector<double> segment_duration;  // Segment duration in seconds
   int numValueCols;
   std::string outputIdentifier;
   
@@ -51,7 +53,8 @@ void collectAllFeatures(int frame, int sr,
                         bool useFrames,
                         std::map<int, RealTime> &lastFeatureTime,
                         int currentSegment,
-                        double segmentStartTime)
+                        double segmentStartTime,
+                        double segmentDuration)
 {
   for (Plugin::FeatureSet::const_iterator fi = features.begin(); fi != features.end(); ++fi) {
     int outputNo = fi->first;
@@ -113,9 +116,11 @@ void collectAllFeatures(int frame, int sr,
         data.timestamp.push_back(timeVal);
       }
       
-      // Store segment index (only if segmentation is active)
+      // Store segment info (only if segmentation is active)
       if (currentSegment > 0) {
         data.segment.push_back(currentSegment);
+        data.segment_start.push_back(segmentStartTime);
+        data.segment_duration.push_back(segmentDuration);
       }
       
       // Store duration
@@ -510,6 +515,7 @@ List runPlugin(std::string key, RObject wave, Nullable<List> params = R_NilValue
   int segmentLengthSamples = doSegmentation ? static_cast<int>(segmentLengthSec * sfinfo.samplerate) : 0;
   int currentSegment = doSegmentation ? 1 : 0;  // 0 means no segmentation
   double segmentStartTime = 0.0;
+  double segmentDuration = segmentLengthSec;  // Duration of current segment in seconds
   int nextSegmentBoundary = segmentLengthSamples;
 
   do {
@@ -603,7 +609,7 @@ List runPlugin(std::string key, RObject wave, Nullable<List> params = R_NilValue
     collectAllFeatures
       (RealTime::realTime2Frame(rt + adjustment, sfinfo.samplerate),
        sfinfo.samplerate, outputs, features, allFeatureData, useFrames, lastFeatureTime,
-       currentSegment, segmentStartTime);
+       currentSegment, segmentStartTime, segmentDuration);
 
     // Check for segment boundary crossing
     if (doSegmentation && samplesRead >= nextSegmentBoundary && samplesRead < totalSamples) {
@@ -611,12 +617,15 @@ List runPlugin(std::string key, RObject wave, Nullable<List> params = R_NilValue
       Plugin::FeatureSet remainingFeatures = plugin->getRemainingFeatures();
       collectAllFeatures(RealTime::realTime2Frame(rt + adjustment, sfinfo.samplerate),
                          sfinfo.samplerate, outputs, remainingFeatures, allFeatureData, useFrames, lastFeatureTime,
-                         currentSegment, segmentStartTime);
+                         currentSegment, segmentStartTime, segmentDuration);
       
       // Move to next segment
       currentSegment++;
       segmentStartTime = static_cast<double>(nextSegmentBoundary) / sfinfo.samplerate;
       nextSegmentBoundary += segmentLengthSamples;
+      // Compute duration for next segment (may be shorter if final segment)
+      int remainingSamples = totalSamples - (nextSegmentBoundary - segmentLengthSamples);
+      segmentDuration = std::min(segmentLengthSec, static_cast<double>(remainingSamples) / sfinfo.samplerate);
       
       // Reset plugin for new segment
       plugin->reset();
@@ -648,9 +657,14 @@ List runPlugin(std::string key, RObject wave, Nullable<List> params = R_NilValue
   features = plugin->getRemainingFeatures();
   
   // Collect remaining features for ALL outputs
+  // Compute actual duration for final segment
+  if (doSegmentation) {
+    double fileEnd = static_cast<double>(totalSamples) / sfinfo.samplerate;
+    segmentDuration = fileEnd - segmentStartTime;
+  }
   collectAllFeatures(RealTime::realTime2Frame(rt + adjustment, sfinfo.samplerate),
                      sfinfo.samplerate, outputs, features, allFeatureData, useFrames, lastFeatureTime,
-                     currentSegment, segmentStartTime);
+                     currentSegment, segmentStartTime, segmentDuration);
   
   
   // Create a List to hold DataFrames for each output
@@ -666,6 +680,8 @@ List runPlugin(std::string key, RObject wave, Nullable<List> params = R_NilValue
       if (doSegmentation) {
         df = DataFrame::create(
           Named("segment") = IntegerVector::create(),
+          Named("segment_start") = NumericVector::create(),
+          Named("segment_duration") = NumericVector::create(),
           Named("timestamp") = NumericVector::create(),
           Named("duration") = NumericVector::create(),
           Named("label") = CharacterVector::create()
@@ -695,9 +711,11 @@ List runPlugin(std::string key, RObject wave, Nullable<List> params = R_NilValue
       // Build the DataFrame
       List columns;
       
-      // Add segment column first if segmentation is active
+      // Add segment columns first if segmentation is active
       if (doSegmentation) {
         columns["segment"] = wrap(featureData.segment);
+        columns["segment_start"] = wrap(featureData.segment_start);
+        columns["segment_duration"] = wrap(featureData.segment_duration);
       }
       
       columns["timestamp"] = wrap(featureData.timestamp);
@@ -969,6 +987,7 @@ List runPlugins(CharacterVector keys, RObject wave, Nullable<List> params = R_Ni
   int segmentLengthSamples = doSegmentation ? static_cast<int>(segmentLengthSec * sfinfo.samplerate) : 0;
   int currentSegment = doSegmentation ? 1 : 0;  // 0 means no segmentation
   double segmentStartTime = 0.0;
+  double segmentDuration = segmentLengthSec;  // Will be adjusted for final segment
   int nextSegmentBoundary = segmentLengthSamples;
 
   // Main processing loop: read audio once, pass to every plugin
@@ -1041,7 +1060,7 @@ List runPlugins(CharacterVector keys, RObject wave, Nullable<List> params = R_Ni
       Plugin::FeatureSet features = p->process(plugbuf_raw.data(), rt);
       RealTime adj_rt = rt + states[pi]->adjustment;
       int frame_for_features = RealTime::realTime2Frame(adj_rt, sfinfo.samplerate);
-      collectAllFeatures(frame_for_features, sfinfo.samplerate, states[pi]->outputs, features, states[pi]->allFeatureData, useFrames, states[pi]->lastFeatureTime, currentSegment, segmentStartTime);
+      collectAllFeatures(frame_for_features, sfinfo.samplerate, states[pi]->outputs, features, states[pi]->allFeatureData, useFrames, states[pi]->lastFeatureTime, currentSegment, segmentStartTime, segmentDuration);
     }
 
     // Check for segment boundary crossing
@@ -1052,13 +1071,16 @@ List runPlugins(CharacterVector keys, RObject wave, Nullable<List> params = R_Ni
         Plugin::FeatureSet remainingFeatures = p->getRemainingFeatures();
         RealTime adj_rt = rt + states[pi]->adjustment;
         int frame_for_features = RealTime::realTime2Frame(adj_rt, sfinfo.samplerate);
-        collectAllFeatures(frame_for_features, sfinfo.samplerate, states[pi]->outputs, remainingFeatures, states[pi]->allFeatureData, useFrames, states[pi]->lastFeatureTime, currentSegment, segmentStartTime);
+        collectAllFeatures(frame_for_features, sfinfo.samplerate, states[pi]->outputs, remainingFeatures, states[pi]->allFeatureData, useFrames, states[pi]->lastFeatureTime, currentSegment, segmentStartTime, segmentDuration);
       }
       
       // Move to next segment
       currentSegment++;
       segmentStartTime = static_cast<double>(nextSegmentBoundary) / sfinfo.samplerate;
       nextSegmentBoundary += segmentLengthSamples;
+      // Compute duration for next segment (may be shorter if final segment)
+      int remainingSamples = totalSamples - (nextSegmentBoundary - segmentLengthSamples);
+      segmentDuration = std::min(segmentLengthSec, static_cast<double>(remainingSamples) / sfinfo.samplerate);
       
       // Reset all plugins for new segment
       for (int pi=0; pi<nplugins; ++pi) {
@@ -1087,10 +1109,15 @@ List runPlugins(CharacterVector keys, RObject wave, Nullable<List> params = R_Ni
   rt = RealTime::frame2RealTime(currentStep * actualStepSize, sfinfo.samplerate);
 
   // Get remaining features for each plugin
+  // Compute actual duration for final segment
+  if (doSegmentation) {
+    double fileEnd = static_cast<double>(totalSamples) / sfinfo.samplerate;
+    segmentDuration = fileEnd - segmentStartTime;
+  }
   for (int pi=0; pi<nplugins; ++pi) {
     Plugin *p = states[pi]->plugin.get();
     Plugin::FeatureSet features = p->getRemainingFeatures();
-    collectAllFeatures(RealTime::realTime2Frame(rt, sfinfo.samplerate), sfinfo.samplerate, states[pi]->outputs, features, states[pi]->allFeatureData, useFrames, states[pi]->lastFeatureTime, currentSegment, segmentStartTime);
+    collectAllFeatures(RealTime::realTime2Frame(rt, sfinfo.samplerate), sfinfo.samplerate, states[pi]->outputs, features, states[pi]->allFeatureData, useFrames, states[pi]->lastFeatureTime, currentSegment, segmentStartTime, segmentDuration);
   }
 
   // Build result: a list per plugin, each a named list of outputs
@@ -1104,6 +1131,8 @@ List runPlugins(CharacterVector keys, RObject wave, Nullable<List> params = R_Ni
         if (doSegmentation) {
           df = DataFrame::create(
             Named("segment") = IntegerVector::create(),
+            Named("segment_start") = NumericVector::create(),
+            Named("segment_duration") = NumericVector::create(),
             Named("timestamp") = NumericVector::create(),
             Named("duration") = NumericVector::create(),
             Named("label") = CharacterVector::create()
@@ -1130,9 +1159,11 @@ List runPlugins(CharacterVector keys, RObject wave, Nullable<List> params = R_Ni
         }
         List columns;
         
-        // Add segment column first if segmentation is active
+        // Add segment columns first if segmentation is active
         if (doSegmentation) {
           columns["segment"] = wrap(featureData.segment);
+          columns["segment_start"] = wrap(featureData.segment_start);
+          columns["segment_duration"] = wrap(featureData.segment_duration);
         }
         
         columns["timestamp"] = wrap(featureData.timestamp);
