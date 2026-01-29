@@ -36,6 +36,7 @@ struct FeatureData {
   std::vector<double> duration;
   std::vector<std::string> label;
   std::vector<std::vector<float>> values;
+  std::vector<int> segment;  // Segment index (1-based), only used when segmentLength is set
   int numValueCols;
   std::string outputIdentifier;
   
@@ -48,7 +49,9 @@ void collectAllFeatures(int frame, int sr,
                         const Plugin::FeatureSet &features,
                         std::map<int, FeatureData> &allData,
                         bool useFrames,
-                        std::map<int, RealTime> &lastFeatureTime)
+                        std::map<int, RealTime> &lastFeatureTime,
+                        int currentSegment,
+                        double segmentStartTime)
 {
   for (Plugin::FeatureSet::const_iterator fi = features.begin(); fi != features.end(); ++fi) {
     int outputNo = fi->first;
@@ -92,11 +95,26 @@ void collectAllFeatures(int frame, int sr,
         }
       }
       
-      // Store timestamp
+      // Store timestamp (adjusted for segment if segmentation is active)
       if (useFrames) {
-        data.timestamp.push_back(RealTime::realTime2Frame(featureTime, sr));
+        int frameVal = RealTime::realTime2Frame(featureTime, sr);
+        if (currentSegment > 0) {
+          // Subtract segment start frame
+          int segmentStartFrame = static_cast<int>(segmentStartTime * sr);
+          frameVal -= segmentStartFrame;
+        }
+        data.timestamp.push_back(frameVal);
       } else {
-        data.timestamp.push_back(toSeconds(featureTime));
+        double timeVal = toSeconds(featureTime);
+        if (currentSegment > 0) {
+          timeVal -= segmentStartTime;
+        }
+        data.timestamp.push_back(timeVal);
+      }
+      
+      // Store segment index (only if segmentation is active)
+      if (currentSegment > 0) {
+        data.segment.push_back(currentSegment);
       }
       
       // Store duration
@@ -135,6 +153,11 @@ StringVector vampPaths() {
     cv.push_back(i);
   }
   return(cv);
+}
+
+// [[Rcpp::export]]
+void vampResetCache() {
+  PluginLoader::resetInstance();
 }
 
 // [[Rcpp::export]]
@@ -243,9 +266,16 @@ DataFrame vampPluginParams(std::string key) {
 }
 
 // [[Rcpp::export]]
-List runPlugin(std::string key, RObject wave, Nullable<List> params = R_NilValue, bool useFrames = false, Nullable<int> blockSize = R_NilValue, Nullable<int> stepSize = R_NilValue, bool verbose = false, bool dropIncompleteFinalFrame = true)
+List runPlugin(std::string key, RObject wave, Nullable<List> params = R_NilValue, bool useFrames = false, Nullable<int> blockSize = R_NilValue, Nullable<int> stepSize = R_NilValue, bool verbose = false, bool dropIncompleteFinalFrame = true, Nullable<double> segmentLength = R_NilValue)
 {
   PluginLoader *loader = PluginLoader::getInstance();
+  
+  // Segmentation setup
+  bool doSegmentation = segmentLength.isNotNull();
+  double segmentLengthSec = doSegmentation ? as<double>(segmentLength) : 0.0;
+  if (doSegmentation && segmentLengthSec <= 0) {
+    Rcpp::stop("segmentLength must be positive");
+  }
   
   // Split key into soname and id
   size_t colonPos = key.find(':');
@@ -475,6 +505,12 @@ List runPlugin(std::string key, RObject wave, Nullable<List> params = R_NilValue
   // Track time for FixedSampleRate outputs with implicit timestamps
   std::map<int, RealTime> lastFeatureTime;
 
+  // Segmentation tracking
+  int segmentLengthSamples = doSegmentation ? static_cast<int>(segmentLengthSec * sfinfo.samplerate) : 0;
+  int currentSegment = doSegmentation ? 1 : 0;  // 0 means no segmentation
+  double segmentStartTime = 0.0;
+  int nextSegmentBoundary = segmentLengthSamples;
+
   do {
     
     int count=0;
@@ -565,7 +601,30 @@ List runPlugin(std::string key, RObject wave, Nullable<List> params = R_NilValue
 
     collectAllFeatures
       (RealTime::realTime2Frame(rt + adjustment, sfinfo.samplerate),
-       sfinfo.samplerate, outputs, features, allFeatureData, useFrames, lastFeatureTime);
+       sfinfo.samplerate, outputs, features, allFeatureData, useFrames, lastFeatureTime,
+       currentSegment, segmentStartTime);
+
+    // Check for segment boundary crossing
+    if (doSegmentation && samplesRead >= nextSegmentBoundary && samplesRead < totalSamples) {
+      // Get remaining features from plugin before reset
+      Plugin::FeatureSet remainingFeatures = plugin->getRemainingFeatures();
+      collectAllFeatures(RealTime::realTime2Frame(rt + adjustment, sfinfo.samplerate),
+                         sfinfo.samplerate, outputs, remainingFeatures, allFeatureData, useFrames, lastFeatureTime,
+                         currentSegment, segmentStartTime);
+      
+      // Move to next segment
+      currentSegment++;
+      segmentStartTime = static_cast<double>(nextSegmentBoundary) / sfinfo.samplerate;
+      nextSegmentBoundary += segmentLengthSamples;
+      
+      // Reset plugin for new segment
+      plugin->reset();
+      lastFeatureTime.clear();
+      
+      if (verbose) {
+        Rcpp::Rcerr << "\nStarting segment " << currentSegment << " at " << segmentStartTime << "s" << std::endl;
+      }
+    }
 
     if (verbose && sfinfo.frames > 0){
       int pp = progress;
@@ -589,7 +648,8 @@ List runPlugin(std::string key, RObject wave, Nullable<List> params = R_NilValue
   
   // Collect remaining features for ALL outputs
   collectAllFeatures(RealTime::realTime2Frame(rt + adjustment, sfinfo.samplerate),
-                     sfinfo.samplerate, outputs, features, allFeatureData, useFrames, lastFeatureTime);
+                     sfinfo.samplerate, outputs, features, allFeatureData, useFrames, lastFeatureTime,
+                     currentSegment, segmentStartTime);
   
   
   // Create a List to hold DataFrames for each output
@@ -602,11 +662,20 @@ List runPlugin(std::string key, RObject wave, Nullable<List> params = R_NilValue
     
     if (featureData.timestamp.empty()) {
       // No features extracted for this output
-      df = DataFrame::create(
-        Named("timestamp") = NumericVector::create(),
-        Named("duration") = NumericVector::create(),
-        Named("label") = CharacterVector::create()
-      );
+      if (doSegmentation) {
+        df = DataFrame::create(
+          Named("segment") = IntegerVector::create(),
+          Named("timestamp") = NumericVector::create(),
+          Named("duration") = NumericVector::create(),
+          Named("label") = CharacterVector::create()
+        );
+      } else {
+        df = DataFrame::create(
+          Named("timestamp") = NumericVector::create(),
+          Named("duration") = NumericVector::create(),
+          Named("label") = CharacterVector::create()
+        );
+      }
     } else {
       // Build value columns
       List valueColumns;
@@ -624,6 +693,12 @@ List runPlugin(std::string key, RObject wave, Nullable<List> params = R_NilValue
       
       // Build the DataFrame
       List columns;
+      
+      // Add segment column first if segmentation is active
+      if (doSegmentation) {
+        columns["segment"] = wrap(featureData.segment);
+      }
+      
       columns["timestamp"] = wrap(featureData.timestamp);
       columns["duration"] = wrap(featureData.duration);
       
@@ -645,9 +720,16 @@ List runPlugin(std::string key, RObject wave, Nullable<List> params = R_NilValue
 }
 
 // [[Rcpp::export]]
-List runPlugins(CharacterVector keys, RObject wave, Nullable<List> params = R_NilValue, bool useFrames = false, Nullable<int> blockSize = R_NilValue, Nullable<int> stepSize = R_NilValue, bool verbose = false, bool dropIncompleteFinalFrame = true)
+List runPlugins(CharacterVector keys, RObject wave, Nullable<List> params = R_NilValue, bool useFrames = false, Nullable<int> blockSize = R_NilValue, Nullable<int> stepSize = R_NilValue, bool verbose = false, bool dropIncompleteFinalFrame = true, Nullable<double> segmentLength = R_NilValue)
 {
   PluginLoader *loader = PluginLoader::getInstance();
+
+  // Segmentation setup
+  bool doSegmentation = segmentLength.isNotNull();
+  double segmentLengthSec = doSegmentation ? as<double>(segmentLength) : 0.0;
+  if (doSegmentation && segmentLengthSec <= 0) {
+    Rcpp::stop("segmentLength must be positive");
+  }
 
   // Convert keys to std::vector<string>
   std::vector<std::string> keylist;
@@ -882,6 +964,12 @@ List runPlugins(CharacterVector keys, RObject wave, Nullable<List> params = R_Ni
 
   RealTime rt;
 
+  // Segmentation tracking
+  int segmentLengthSamples = doSegmentation ? static_cast<int>(segmentLengthSec * sfinfo.samplerate) : 0;
+  int currentSegment = doSegmentation ? 1 : 0;  // 0 means no segmentation
+  double segmentStartTime = 0.0;
+  int nextSegmentBoundary = segmentLengthSamples;
+
   // Main processing loop: read audio once, pass to every plugin
   do {
     int count = 0;
@@ -952,7 +1040,34 @@ List runPlugins(CharacterVector keys, RObject wave, Nullable<List> params = R_Ni
       Plugin::FeatureSet features = p->process(plugbuf_raw.data(), rt);
       RealTime adj_rt = rt + states[pi]->adjustment;
       int frame_for_features = RealTime::realTime2Frame(adj_rt, sfinfo.samplerate);
-      collectAllFeatures(frame_for_features, sfinfo.samplerate, states[pi]->outputs, features, states[pi]->allFeatureData, useFrames, states[pi]->lastFeatureTime);
+      collectAllFeatures(frame_for_features, sfinfo.samplerate, states[pi]->outputs, features, states[pi]->allFeatureData, useFrames, states[pi]->lastFeatureTime, currentSegment, segmentStartTime);
+    }
+
+    // Check for segment boundary crossing
+    if (doSegmentation && samplesRead >= nextSegmentBoundary && samplesRead < totalSamples) {
+      // Get remaining features from all plugins before reset
+      for (int pi=0; pi<nplugins; ++pi) {
+        Plugin *p = states[pi]->plugin.get();
+        Plugin::FeatureSet remainingFeatures = p->getRemainingFeatures();
+        RealTime adj_rt = rt + states[pi]->adjustment;
+        int frame_for_features = RealTime::realTime2Frame(adj_rt, sfinfo.samplerate);
+        collectAllFeatures(frame_for_features, sfinfo.samplerate, states[pi]->outputs, remainingFeatures, states[pi]->allFeatureData, useFrames, states[pi]->lastFeatureTime, currentSegment, segmentStartTime);
+      }
+      
+      // Move to next segment
+      currentSegment++;
+      segmentStartTime = static_cast<double>(nextSegmentBoundary) / sfinfo.samplerate;
+      nextSegmentBoundary += segmentLengthSamples;
+      
+      // Reset all plugins for new segment
+      for (int pi=0; pi<nplugins; ++pi) {
+        states[pi]->plugin->reset();
+        states[pi]->lastFeatureTime.clear();
+      }
+      
+      if (verbose) {
+        Rcpp::Rcerr << "\nStarting segment " << currentSegment << " at " << segmentStartTime << "s" << std::endl;
+      }
     }
 
     if (verbose && sfinfo.frames > 0) {
@@ -974,7 +1089,7 @@ List runPlugins(CharacterVector keys, RObject wave, Nullable<List> params = R_Ni
   for (int pi=0; pi<nplugins; ++pi) {
     Plugin *p = states[pi]->plugin.get();
     Plugin::FeatureSet features = p->getRemainingFeatures();
-    collectAllFeatures(RealTime::realTime2Frame(rt, sfinfo.samplerate), sfinfo.samplerate, states[pi]->outputs, features, states[pi]->allFeatureData, useFrames, states[pi]->lastFeatureTime);
+    collectAllFeatures(RealTime::realTime2Frame(rt, sfinfo.samplerate), sfinfo.samplerate, states[pi]->outputs, features, states[pi]->allFeatureData, useFrames, states[pi]->lastFeatureTime, currentSegment, segmentStartTime);
   }
 
   // Build result: a list per plugin, each a named list of outputs
@@ -985,11 +1100,20 @@ List runPlugins(CharacterVector keys, RObject wave, Nullable<List> params = R_Ni
       FeatureData &featureData = pair.second;
       DataFrame df;
       if (featureData.timestamp.empty()) {
-        df = DataFrame::create(
-          Named("timestamp") = NumericVector::create(),
-          Named("duration") = NumericVector::create(),
-          Named("label") = CharacterVector::create()
-        );
+        if (doSegmentation) {
+          df = DataFrame::create(
+            Named("segment") = IntegerVector::create(),
+            Named("timestamp") = NumericVector::create(),
+            Named("duration") = NumericVector::create(),
+            Named("label") = CharacterVector::create()
+          );
+        } else {
+          df = DataFrame::create(
+            Named("timestamp") = NumericVector::create(),
+            Named("duration") = NumericVector::create(),
+            Named("label") = CharacterVector::create()
+          );
+        }
       } else {
         List valueColumns;
         std::vector<std::string> colNames(featureData.numValueCols);
@@ -1004,6 +1128,12 @@ List runPlugins(CharacterVector keys, RObject wave, Nullable<List> params = R_Ni
           valueColumns[colNames[i]] = col;
         }
         List columns;
+        
+        // Add segment column first if segmentation is active
+        if (doSegmentation) {
+          columns["segment"] = wrap(featureData.segment);
+        }
+        
         columns["timestamp"] = wrap(featureData.timestamp);
         columns["duration"] = wrap(featureData.duration);
         for (int i = 0; i < featureData.numValueCols; i++) {

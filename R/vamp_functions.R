@@ -34,6 +34,31 @@ vampPaths <- function() {
     .Call(`_ReVAMP_vampPaths`)
 }
 
+#' Reset Vamp Plugin Cache
+#'
+#' Resets the internal plugin cache, allowing changes to the VAMP_PATH
+#' environment variable to take effect without restarting R. Call this
+#' function after modifying the VAMP_PATH with \code{Sys.setenv()} to
+#' ensure that \code{\link{vampPlugins}} discovers plugins in the new
+#' search paths.
+#'
+#' @return NULL invisibly
+#' @export
+#' @examples
+#' \dontrun{
+#' # Change plugin search path and refresh cache
+#' Sys.setenv(VAMP_PATH = "C:/Users/myuser/Vamp Plugins")
+#' vampResetCache()
+#'
+#' # Now vampPlugins() will search the new path
+#' plugins <- vampPlugins()
+#' }
+#' @seealso \code{\link{vampPaths}} to view current search paths,
+#'   \code{\link{vampPlugins}} to list available plugins
+vampResetCache <- function() {
+    invisible(.Call(`_ReVAMP_vampResetCache`))
+}
+
 #' List All Available Vamp Plugins
 #'
 #' Enumerates all Vamp plugins found in the plugin search paths and returns
@@ -134,11 +159,16 @@ vampPluginParams <- function(key) {
 #'   analysis frame if it would require zero-padding due to insufficient samples.
 #'   Default is TRUE, meaning only complete frames are processed.
 #'   Set to FALSE to include zero-padded incomplete final frames.
+#' @param segmentLength Optional numeric specifying the segment length in seconds.
+#'   If provided, the audio will be processed in segments of this length, and
+#'   the output data frames will include a \code{segment} column (1-indexed).
+#'   Timestamps within each segment are reset to start from 0. The plugin state
+#'   is reset between segments. If NULL (default), no segmentation is performed.
 #' @return A named list of data frames, one for each output produced by the plugin.
 #'   The names correspond to the output identifiers (e.g., "amplitude", "onsets").
 #'   Each data frame contains columns for timestamp (or frame), duration, values, and
-#'   labels (if applicable). If the plugin has only one output, the list will have
-#'   one element.
+#'   labels (if applicable). If segmentLength is specified, a \code{segment} column
+#'   is also included. If the plugin has only one output, the list will have one element.
 #' @details
 #' Many Vamp plugins produce multiple outputs. For example, an onset detector might
 #' output both "onsets" (discrete event times) and "detection_function" (a continuous
@@ -164,9 +194,20 @@ vampPluginParams <- function(key) {
 #'     Smaller = better time resolution, more computation.
 #' }
 #'
+#' \strong{Segmentation:}
+#' 
+#' When \code{segmentLength} is specified, the audio is processed in fixed-length
+#' segments. This is useful for:
+#' \itemize{
+#'   \item Computing per-minute or per-second statistics on long recordings
+#'   \item Ensuring plugin state is reset at regular intervals
+#'   \item Analyzing files where you need results grouped by time period
+#' }
+#'
 #' Each output data frame typically includes:
 #' \itemize{
-#'   \item \strong{timestamp}: Time or frame number of the feature
+#'   \item \strong{segment}: Segment index (1-based), only present when segmentLength is set
+#'   \item \strong{timestamp}: Time or frame number of the feature (relative to segment start)
 #'   \item \strong{duration}: Duration of the feature (if applicable, otherwise NA)
 #'   \item \strong{value/value1/value2/...}: Feature values (number of columns varies)
 #'   \item \strong{label}: Text label for the feature (if applicable, otherwise empty)
@@ -236,11 +277,26 @@ vampPluginParams <- function(key) {
 #'   blockSize = 4096,  # Larger FFT for better frequency resolution
 #'   stepSize = 2048    # 50% overlap (typical for frequency domain)
 #' )
+#' 
+#' # Process a long recording in 60-second segments
+#' result <- runPlugin(
+#'   wave = "long_recording.wav",
+#'   key = "vamp-example-plugins:amplitudefollower",
+#'   segmentLength = 60  # 60-second segments
+#' )
+#' 
+#' # Output now includes segment column
+#' head(result$amplitude)
+#' #   segment timestamp duration value label
+#' # 1       1      0.00       NA  0.12
+#' # 2       1      0.02       NA  0.15
+#' # ...
+#' # 50      2      0.00       NA  0.08  # Segment 2 starts, timestamp resets
 #' }
 #' @seealso \code{\link{vampPlugins}} to list available plugins,
 #'   \code{\link{vampPluginParams}} to get plugin parameters
-runPlugin <- function(wave, key, params = NULL, useFrames = FALSE, blockSize = NULL, stepSize = NULL, verbose = FALSE, dropIncompleteFinalFrame = TRUE) {
-    .Call(`_ReVAMP_runPlugin`, key, wave, params, useFrames, blockSize, stepSize, verbose, dropIncompleteFinalFrame)
+runPlugin <- function(wave, key, params = NULL, useFrames = FALSE, blockSize = NULL, stepSize = NULL, verbose = FALSE, dropIncompleteFinalFrame = TRUE, segmentLength = NULL) {
+    .Call(`_ReVAMP_runPlugin`, key, wave, params, useFrames, blockSize, stepSize, verbose, dropIncompleteFinalFrame, segmentLength)
 }
 
 #' Run Multiple Vamp Plugins on Audio Data in a Single Pass
@@ -252,9 +308,14 @@ runPlugin <- function(wave, key, params = NULL, useFrames = FALSE, blockSize = N
 #' @param wave Wave object or filename (same as `runPlugin`).
 #' @param params Optional list of parameter lists (either a list-of-lists, a single list applied to all, or a named list keyed by plugin key).
 #' @param useFrames,blockSize,stepSize,verbose,dropIncompleteFinalFrame Same semantics as `runPlugin`.
+#' @param segmentLength Optional numeric specifying the segment length in seconds.
+#'   If provided, the audio will be processed in segments of this length, and
+#'   the output data frames will include a \code{segment} column (1-indexed).
+#'   Timestamps within each segment are reset to start from 0. The plugin state
+#'   is reset between segments. If NULL (default), no segmentation is performed.
 #' @return A named list where each element corresponds to a plugin key and contains that plugin's outputs (same structure as `runPlugin`).
 #' @export
-runPlugins <- function(wave, keys, params = NULL, useFrames = FALSE, blockSize = NULL, stepSize = NULL, verbose = FALSE, dropIncompleteFinalFrame = TRUE) {
-    .Call(`_ReVAMP_runPlugins`, keys, wave, params, useFrames, blockSize, stepSize, verbose, dropIncompleteFinalFrame)
+runPlugins <- function(wave, keys, params = NULL, useFrames = FALSE, blockSize = NULL, stepSize = NULL, verbose = FALSE, dropIncompleteFinalFrame = TRUE, segmentLength = NULL) {
+    .Call(`_ReVAMP_runPlugins`, keys, wave, params, useFrames, blockSize, stepSize, verbose, dropIncompleteFinalFrame, segmentLength)
 }
 

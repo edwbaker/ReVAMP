@@ -195,6 +195,15 @@ PluginLoader::getLibraryPathForPlugin(PluginKey key)
 {
     return m_impl->getLibraryPathForPlugin(key);
 }
+
+void
+PluginLoader::resetInstance()
+{
+    if (m_instance) {
+        delete m_instance;
+        m_instance = 0;
+    }
+}
  
 PluginLoader::Impl::Impl() :
     m_allPluginsEnumerated(false)
