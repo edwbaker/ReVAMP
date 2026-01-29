@@ -136,59 +136,9 @@
 <span>     main <span class="op">=</span> <span class="st">"Audio Amplitude"</span><span class="op">)</span></span></code></pre></div>
 </div>
 <div class="section level2">
-<h2 id="common-use-cases">Common Use Cases<a class="anchor" aria-label="anchor" href="#common-use-cases"></a>
-</h2>
-<div class="section level3">
-<h3 id="onset-detection">Onset Detection<a class="anchor" aria-label="anchor" href="#onset-detection"></a>
-</h3>
-<p>Detect note onsets in audio:</p>
-<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">onsets</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/runPlugin.html">runPlugin</a></span><span class="op">(</span></span>
-<span>  wave <span class="op">=</span> <span class="va">audio</span>,</span>
-<span>  key <span class="op">=</span> <span class="st">"vamp-aubio-plugins:aubioonset"</span>,</span>
-<span>  useFrames <span class="op">=</span> <span class="cn">FALSE</span></span>
-<span><span class="op">)</span></span>
-<span></span>
-<span><span class="co"># View onset times</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">onsets</span><span class="op">$</span><span class="va">onsets</span><span class="op">$</span><span class="va">timestamp</span><span class="op">)</span></span>
-<span></span>
-<span><span class="co"># Plot onsets on waveform</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">audio</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/graphics/abline.html" class="external-link">abline</a></span><span class="op">(</span>v <span class="op">=</span> <span class="va">onsets</span><span class="op">$</span><span class="va">onsets</span><span class="op">$</span><span class="va">timestamp</span> <span class="op">*</span> <span class="va">audio</span><span class="op">@</span><span class="va">samp.rate</span>, col <span class="op">=</span> <span class="st">"red"</span>, lty <span class="op">=</span> <span class="fl">2</span><span class="op">)</span></span></code></pre></div>
-</div>
-<div class="section level3">
-<h3 id="tempo-detection">Tempo Detection<a class="anchor" aria-label="anchor" href="#tempo-detection"></a>
-</h3>
-<p>Estimate tempo (BPM):</p>
-<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">tempo</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/runPlugin.html">runPlugin</a></span><span class="op">(</span></span>
-<span>  wave <span class="op">=</span> <span class="va">audio</span>,</span>
-<span>  key <span class="op">=</span> <span class="st">"vamp-aubio-plugins:aubiotempo"</span>,</span>
-<span>  useFrames <span class="op">=</span> <span class="cn">FALSE</span></span>
-<span><span class="op">)</span></span>
-<span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="st">"Estimated tempo:"</span>, <span class="fu"><a href="https://rdrr.io/r/base/mean.html" class="external-link">mean</a></span><span class="op">(</span><span class="va">tempo</span><span class="op">$</span><span class="va">tempo</span><span class="op">$</span><span class="va">value</span><span class="op">)</span>, <span class="st">"BPM\n"</span><span class="op">)</span></span></code></pre></div>
-</div>
-<div class="section level3">
-<h3 id="spectral-centroid">Spectral Centroid<a class="anchor" aria-label="anchor" href="#spectral-centroid"></a>
-</h3>
-<p>Analyze spectral characteristics:</p>
-<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">centroid</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/runPlugin.html">runPlugin</a></span><span class="op">(</span></span>
-<span>  wave <span class="op">=</span> <span class="va">audio</span>,</span>
-<span>  key <span class="op">=</span> <span class="st">"vamp-example-plugins:spectralcentroid"</span>,</span>
-<span>  useFrames <span class="op">=</span> <span class="cn">FALSE</span></span>
-<span><span class="op">)</span></span>
-<span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">centroid</span><span class="op">$</span><span class="va">logcentroid</span><span class="op">$</span><span class="va">timestamp</span>, <span class="va">centroid</span><span class="op">$</span><span class="va">logcentroid</span><span class="op">$</span><span class="va">value</span>, type <span class="op">=</span> <span class="st">"l"</span>,</span>
-<span>     xlab <span class="op">=</span> <span class="st">"Time (s)"</span>, ylab <span class="op">=</span> <span class="st">"Log Centroid"</span>,</span>
-<span>     main <span class="op">=</span> <span class="st">"Spectral Centroid Over Time"</span><span class="op">)</span></span></code></pre></div>
-</div>
-</div>
-<div class="section level2">
 <h2 id="package-information">Package Information<a class="anchor" aria-label="anchor" href="#package-information"></a>
 </h2>
-<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Get Vamp API/SDK version info</span></span>
 <span><span class="fu"><a href="reference/vampInfo.html">vampInfo</a></span><span class="op">(</span><span class="op">)</span></span>
 <span></span>
@@ -221,7 +171,7 @@
 <h2 id="development">Development<a class="anchor" aria-label="anchor" href="#development"></a>
 </h2>
 <p>The package uses standard R/Rcpp development tools:</p>
-<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://devtools.r-lib.org/" class="external-link">devtools</a></span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># Make changes to code...</span></span>

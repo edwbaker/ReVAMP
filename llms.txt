@@ -74,57 +74,6 @@ plot(result$amplitude$timestamp, result$amplitude$value, type = "l",
      main = "Audio Amplitude")
 ```
 
-## Common Use Cases
-
-### Onset Detection
-
-Detect note onsets in audio:
-
-``` r
-onsets <- runPlugin(
-  wave = audio,
-  key = "vamp-aubio-plugins:aubioonset",
-  useFrames = FALSE
-)
-
-# View onset times
-print(onsets$onsets$timestamp)
-
-# Plot onsets on waveform
-plot(audio)
-abline(v = onsets$onsets$timestamp * audio@samp.rate, col = "red", lty = 2)
-```
-
-### Tempo Detection
-
-Estimate tempo (BPM):
-
-``` r
-tempo <- runPlugin(
-  wave = audio,
-  key = "vamp-aubio-plugins:aubiotempo",
-  useFrames = FALSE
-)
-
-cat("Estimated tempo:", mean(tempo$tempo$value), "BPM\n")
-```
-
-### Spectral Centroid
-
-Analyze spectral characteristics:
-
-``` r
-centroid <- runPlugin(
-  wave = audio,
-  key = "vamp-example-plugins:spectralcentroid",
-  useFrames = FALSE
-)
-
-plot(centroid$logcentroid$timestamp, centroid$logcentroid$value, type = "l",
-     xlab = "Time (s)", ylab = "Log Centroid",
-     main = "Spectral Centroid Over Time")
-```
-
 ## Package Information
 
 ``` r
