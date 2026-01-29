@@ -22,6 +22,8 @@ vampInfo <- function() {
 #' Returns the list of directories where ReVAMP searches for Vamp plugins.
 #' The search paths are determined by the Vamp Host SDK and typically include
 #' system-wide plugin directories and user-specific directories.
+#' 
+#' Will also reset the VAMP_PATH cache after it is set by Sys.setenv().
 #'
 #' @return A character vector of directory paths
 #' @export
@@ -31,6 +33,7 @@ vampInfo <- function() {
 #' vampPaths()
 #' }
 vampPaths <- function() {
+    vampResetCache()
     .Call(`_ReVAMP_vampPaths`)
 }
 

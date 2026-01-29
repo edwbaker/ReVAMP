@@ -55,7 +55,7 @@ Set to FALSE to include zero-padded incomplete final frames.}
 \item{segmentLength}{Optional numeric specifying the segment length in seconds.
 If provided, the audio will be processed in segments of this length, and
 the output data frames will include a \code{segment} column (1-indexed).
-Timestamps within each segment are reset to start from 0. The plugin state
+Timestamps remain absolute (relative to the original file start). The plugin state
 is reset between segments. If NULL (default), no segmentation is performed.}
 }
 \value{
@@ -108,7 +108,11 @@ segments. This is useful for:
 Each output data frame typically includes:
 \itemize{
 \item \strong{segment}: Segment index (1-based), only present when segmentLength is set
-\item \strong{timestamp}: Time or frame number of the feature (relative to segment start)
+\item \strong{segment_start}: Start time of the segment in seconds from the beginning of the file,
+only present when segmentLength is set
+\item \strong{segment_duration}: Duration of the segment in seconds (may be shorter for the final
+segment), only present when segmentLength is set
+\item \strong{timestamp}: Time or frame number of the feature (as reported by the plugin)
 \item \strong{duration}: Duration of the feature (if applicable, otherwise NA)
 \item \strong{value/value1/value2/...}: Feature values (number of columns varies)
 \item \strong{label}: Text label for the feature (if applicable, otherwise empty)
@@ -186,13 +190,13 @@ result <- runPlugin(
   segmentLength = 60  # 60-second segments
 )
 
-# Output now includes segment column
+# Output now includes segment columns
 head(result$amplitude)
-#   segment timestamp duration value label
-# 1       1      0.00       NA  0.12
-# 2       1      0.02       NA  0.15
+#   segment segment_start segment_duration timestamp duration value label
+# 1       1             0               60      0.00       NA  0.12
+# 2       1             0               60      0.02       NA  0.15
 # ...
-# 50      2      0.00       NA  0.08  # Segment 2 starts, timestamp resets
+# 50      2            60               60      0.00       NA  0.08  # Segment 2
 }
 }
 \seealso{
