@@ -162,7 +162,7 @@ vampPluginParams <- function(key) {
 #' @param segmentLength Optional numeric specifying the segment length in seconds.
 #'   If provided, the audio will be processed in segments of this length, and
 #'   the output data frames will include a \code{segment} column (1-indexed).
-#'   Timestamps within each segment are reset to start from 0. The plugin state
+#'   Timestamps remain absolute (relative to the original file start). The plugin state
 #'   is reset between segments. If NULL (default), no segmentation is performed.
 #' @return A named list of data frames, one for each output produced by the plugin.
 #'   The names correspond to the output identifiers (e.g., "amplitude", "onsets").
@@ -207,7 +207,7 @@ vampPluginParams <- function(key) {
 #' Each output data frame typically includes:
 #' \itemize{
 #'   \item \strong{segment}: Segment index (1-based), only present when segmentLength is set
-#'   \item \strong{timestamp}: Time or frame number of the feature (relative to segment start)
+#'   \item \strong{timestamp}: Time or frame number of the feature (absolute position in original file)
 #'   \item \strong{duration}: Duration of the feature (if applicable, otherwise NA)
 #'   \item \strong{value/value1/value2/...}: Feature values (number of columns varies)
 #'   \item \strong{label}: Text label for the feature (if applicable, otherwise empty)
@@ -311,7 +311,7 @@ runPlugin <- function(wave, key, params = NULL, useFrames = FALSE, blockSize = N
 #' @param segmentLength Optional numeric specifying the segment length in seconds.
 #'   If provided, the audio will be processed in segments of this length, and
 #'   the output data frames will include a \code{segment} column (1-indexed).
-#'   Timestamps within each segment are reset to start from 0. The plugin state
+#'   Timestamps remain absolute (relative to the original file start). The plugin state
 #'   is reset between segments. If NULL (default), no segmentation is performed.
 #' @return A named list where each element corresponds to a plugin key and contains that plugin's outputs (same structure as `runPlugin`).
 #' @export

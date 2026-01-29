@@ -95,19 +95,20 @@ void collectAllFeatures(int frame, int sr,
         }
       }
       
-      // Store timestamp (adjusted for segment if segmentation is active)
+      // Store timestamp (absolute position in original file)
+      // When segmenting, add segmentStartTime to get absolute file position
       if (useFrames) {
         int frameVal = RealTime::realTime2Frame(featureTime, sr);
         if (currentSegment > 0) {
-          // Subtract segment start frame
+          // Add segment start frame to get absolute position
           int segmentStartFrame = static_cast<int>(segmentStartTime * sr);
-          frameVal -= segmentStartFrame;
+          frameVal += segmentStartFrame;
         }
         data.timestamp.push_back(frameVal);
       } else {
         double timeVal = toSeconds(featureTime);
         if (currentSegment > 0) {
-          timeVal -= segmentStartTime;
+          timeVal += segmentStartTime;
         }
         data.timestamp.push_back(timeVal);
       }
