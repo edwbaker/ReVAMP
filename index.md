@@ -20,12 +20,14 @@ detection, spectral analysis, and feature extraction.
 Install from CRAN:
 
 ``` r
+
 install.packages("ReVAMP")
 ```
 
 Install from source:
 
 ``` r
+
 # Install dependencies
 install.packages(c("Rcpp", "tuneR"))
 
@@ -36,6 +38,7 @@ install.packages("path/to/ReVAMP_1.0.tar.gz", repos = NULL, type = "source")
 Or install with devtools:
 
 ``` r
+
 devtools::install_github("edwbaker/ReVAMP")
 ```
 
@@ -46,6 +49,7 @@ ReVAMP requires external Vamp plugins to be installed.
 ## Quick Start
 
 ``` r
+
 library(ReVAMP)
 library(tuneR)
 
@@ -77,6 +81,7 @@ plot(result$amplitude$timestamp, result$amplitude$value, type = "l",
 ## Package Information
 
 ``` r
+
 # Get Vamp API/SDK version info
 vampInfo()
 
@@ -107,6 +112,7 @@ View(params)
 The package uses standard R/Rcpp development tools:
 
 ``` r
+
 library(devtools)
 
 # Make changes to code...

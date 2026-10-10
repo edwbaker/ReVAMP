@@ -1,6 +1,7 @@
 # Managing Vamp Plugin Paths
 
 ``` r
+
 library(ReVAMP)
 ```
 
@@ -25,6 +26,7 @@ Use [`vampPaths()`](http://revamp.ebaker.me.uk/reference/vampPaths.md)
 to see where ReVAMP searches for plugins:
 
 ``` r
+
 # View plugin search paths
 paths <- vampPaths()
 print(paths)
@@ -87,6 +89,7 @@ Path separator is `:` on Unix/macOS and `;` on Windows.
 After installing plugins, verify they’re detected:
 
 ``` r
+
 # List all plugins
 plugins <- vampPlugins()
 

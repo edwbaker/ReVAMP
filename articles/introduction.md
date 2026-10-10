@@ -1,6 +1,7 @@
 # Introduction to ReVAMP
 
 ``` r
+
 library(ReVAMP)
 library(tuneR)
 ```
@@ -45,6 +46,7 @@ on plugin installation and search paths.
 First, check what plugins are available on your system:
 
 ``` r
+
 # List all available plugins
 plugins <- vampPlugins()
 head(plugins)
@@ -70,6 +72,7 @@ which executes a plugin on audio data and returns results as a named
 list of data frames.
 
 ``` r
+
 # Load audio file
 audio <- readWave("path/to/audio.wav")
 
@@ -98,6 +101,7 @@ Each output data frame contains:
 Plugins are identified by a key in the format `library:plugin`:
 
 ``` r
+
 # Examples of plugin keys
 "vamp-example-plugins:amplitudefollower"
 "vamp-aubio:aubiotempo"
@@ -112,6 +116,7 @@ Many plugins accept parameters to customize their behavior.
 ### Discovering Parameters
 
 ``` r
+
 # Get parameters for a plugin
 params_df <- vampPluginParams("vamp-aubio:aubiopitch")
 print(params_df)
@@ -134,6 +139,7 @@ The parameters dataframe shows:
 Pass parameters as a named list:
 
 ``` r
+
 # Run pitch detection with custom parameters
 result <- runPlugin(
   key = "vamp-aubio:aubiopitch",
