@@ -9,6 +9,10 @@ vampPaths <- function() {
     .Call(`_ReVAMP_vampPaths`)
 }
 
+vampResetCache <- function() {
+    invisible(.Call(`_ReVAMP_vampResetCache`))
+}
+
 vampPlugins <- function() {
     .Call(`_ReVAMP_vampPlugins`)
 }
@@ -17,11 +21,11 @@ vampPluginParams <- function(key) {
     .Call(`_ReVAMP_vampPluginParams`, key)
 }
 
-runPlugin <- function(key, wave, params = NULL, useFrames = FALSE, blockSize = NULL, stepSize = NULL, verbose = FALSE, dropIncompleteFinalFrame = TRUE) {
-    .Call(`_ReVAMP_runPlugin`, key, wave, params, useFrames, blockSize, stepSize, verbose, dropIncompleteFinalFrame)
+runPlugin <- function(key, wave, params = NULL, useFrames = FALSE, blockSize = NULL, stepSize = NULL, verbose = FALSE, dropIncompleteFinalFrame = TRUE, segmentLength = NULL) {
+    .Call(`_ReVAMP_runPlugin`, key, wave, params, useFrames, blockSize, stepSize, verbose, dropIncompleteFinalFrame, segmentLength)
 }
 
-runPlugins <- function(keys, wave, params = NULL, useFrames = FALSE, blockSize = NULL, stepSize = NULL, verbose = FALSE, dropIncompleteFinalFrame = TRUE) {
-    .Call(`_ReVAMP_runPlugins`, keys, wave, params, useFrames, blockSize, stepSize, verbose, dropIncompleteFinalFrame)
+runPlugins <- function(keys, wave, params = NULL, useFrames = FALSE, blockSize = NULL, stepSize = NULL, verbose = FALSE, dropIncompleteFinalFrame = TRUE, segmentLength = NULL) {
+    .Call(`_ReVAMP_runPlugins`, keys, wave, params, useFrames, blockSize, stepSize, verbose, dropIncompleteFinalFrame, segmentLength)
 }
 

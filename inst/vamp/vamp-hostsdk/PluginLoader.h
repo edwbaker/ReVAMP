@@ -260,6 +260,13 @@ public:
      */
     std::string getLibraryPathForPlugin(PluginKey plugin);
 
+    /**
+     * Reset the PluginLoader singleton, clearing all cached plugin
+     * information. This allows the plugin search paths (VAMP_PATH)
+     * to be re-read on the next call to listPlugins() or loadPlugin().
+     */
+    static void resetInstance();
+
 protected:
     PluginLoader();
     virtual ~PluginLoader();
