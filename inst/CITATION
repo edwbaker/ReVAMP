@@ -2,6 +2,8 @@ bibentry(
   bibtype  = "Manual",
   title    = "ReVAMP: R Interface to Vamp Audio Analysis Plugins",
   author   = "Ed Baker",
-  year     = "2025",
+  year     = sub("-.*", "", meta$Date),
+  note     = sprintf("R package version %s", meta$Version),
+  doi      = "10.32614/CRAN.package.ReVAMP",
   url      = "https://revamp.ebaker.me.uk"
 )
