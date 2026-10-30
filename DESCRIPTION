@@ -35,10 +35,10 @@ Suggests:
 Config/testthat/edition: 3
 VignetteBuilder: knitr
 Roxygen: list(markdown = TRUE)
-RoxygenNote: 7.3.3
 Encoding: UTF-8
 URL: 
     https://revamp.ebaker.me.uk/,
     https://github.com/edwbaker/ReVAMP
 BugReports: https://github.com/edwbaker/ReVAMP/issues
 Language: en-US
+Config/roxygen2/version: 8.1.0
