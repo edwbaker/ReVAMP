@@ -6,6 +6,7 @@ New features: `runPlugin()` and `runPlugins()` can analyse a recording in segmen
 `vampResetCache()` lets a `VAMP_PATH` set after the package is loaded take effect.
 
 Tested locally: Windows 11, R 4.6.1 (R CMD check --as-cran)
+Tested on win builder: release (R 4.6.2)
 
 ## R CMD check results
 
