@@ -17,3 +17,5 @@
   : Get Parameters for a Specific Vamp Plugin
 - [`vampPlugins()`](http://revamp.ebaker.me.uk/reference/vampPlugins.md)
   : List All Available Vamp Plugins
+- [`vampResetCache()`](http://revamp.ebaker.me.uk/reference/vampResetCache.md)
+  : Reset Vamp Plugin Cache

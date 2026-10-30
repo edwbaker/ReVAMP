@@ -16,7 +16,8 @@ runPlugins(
   blockSize = NULL,
   stepSize = NULL,
   verbose = FALSE,
-  dropIncompleteFinalFrame = TRUE
+  dropIncompleteFinalFrame = TRUE,
+  segmentLength = NULL
 )
 ```
 
@@ -38,6 +39,15 @@ runPlugins(
 - useFrames, blockSize, stepSize, verbose, dropIncompleteFinalFrame:
 
   Same semantics as `runPlugin`.
+
+- segmentLength:
+
+  Optional numeric specifying the segment length in seconds. If
+  provided, the audio will be processed in segments of this length, and
+  the output data frames will include a `segment` column (1-indexed).
+  Timestamps remain absolute (relative to the original file start). The
+  plugin state is reset between segments. If NULL (default), no
+  segmentation is performed.
 
 ## Value
 

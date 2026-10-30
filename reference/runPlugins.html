@@ -57,7 +57,8 @@ must match or the caller must provide explicit <code>blockSize</code>/<code>step
 <span>  blockSize <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  stepSize <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  verbose <span class="op">=</span> <span class="cn">FALSE</span>,</span>
-<span>  dropIncompleteFinalFrame <span class="op">=</span> <span class="cn">TRUE</span></span>
+<span>  dropIncompleteFinalFrame <span class="op">=</span> <span class="cn">TRUE</span>,</span>
+<span>  segmentLength <span class="op">=</span> <span class="cn">NULL</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
 
@@ -79,6 +80,14 @@ must match or the caller must provide explicit <code>blockSize</code>/<code>step
 
 <dt id="arg-useframes-blocksize-stepsize-verbose-dropincompletefinalframe">useFrames, blockSize, stepSize, verbose, dropIncompleteFinalFrame<a class="anchor" aria-label="anchor" href="#arg-useframes-blocksize-stepsize-verbose-dropincompletefinalframe"></a></dt>
 <dd><p>Same semantics as <code>runPlugin</code>.</p></dd>
+
+
+<dt id="arg-segmentlength">segmentLength<a class="anchor" aria-label="anchor" href="#arg-segmentlength"></a></dt>
+<dd><p>Optional numeric specifying the segment length in seconds.
+If provided, the audio will be processed in segments of this length, and
+the output data frames will include a <code>segment</code> column (1-indexed).
+Timestamps remain absolute (relative to the original file start). The plugin state
+is reset between segments. If NULL (default), no segmentation is performed.</p></dd>
 
 </dl></div>
     <div class="section level2">

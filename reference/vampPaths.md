@@ -14,6 +14,10 @@ vampPaths()
 
 A character vector of directory paths
 
+## Details
+
+Will also reset the VAMP_PATH cache after it is set by Sys.setenv().
+
 ## Examples
 
 ``` r

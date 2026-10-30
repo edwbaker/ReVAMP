@@ -15,7 +15,8 @@ runPlugin(
   blockSize = NULL,
   stepSize = NULL,
   verbose = FALSE,
-  dropIncompleteFinalFrame = TRUE
+  dropIncompleteFinalFrame = TRUE,
+  segmentLength = NULL
 )
 ```
 
@@ -78,13 +79,23 @@ runPlugin(
   TRUE, meaning only complete frames are processed. Set to FALSE to
   include zero-padded incomplete final frames.
 
+- segmentLength:
+
+  Optional numeric specifying the segment length in seconds. If
+  provided, the audio will be processed in segments of this length, and
+  the output data frames will include a `segment` column (1-indexed).
+  Timestamps remain absolute (relative to the original file start). The
+  plugin state is reset between segments. If NULL (default), no
+  segmentation is performed.
+
 ## Value
 
 A named list of data frames, one for each output produced by the plugin.
 The names correspond to the output identifiers (e.g., "amplitude",
 "onsets"). Each data frame contains columns for timestamp (or frame),
-duration, values, and labels (if applicable). If the plugin has only one
-output, the list will have one element.
+duration, values, and labels (if applicable). If segmentLength is
+specified, a `segment` column is also included. If the plugin has only
+one output, the list will have one element.
 
 ## Details
 
@@ -113,9 +124,30 @@ These parameters control the time/frequency resolution trade-off:
   Typical values: blockSize/2 (50\\ Smaller = better time resolution,
   more computation.
 
+**Segmentation:**
+
+When `segmentLength` is specified, the audio is processed in
+fixed-length segments. This is useful for:
+
+- Computing per-minute or per-second statistics on long recordings
+
+- Ensuring plugin state is reset at regular intervals
+
+- Analyzing files where you need results grouped by time period
+
 Each output data frame typically includes:
 
-- **timestamp**: Time or frame number of the feature
+- **segment**: Segment index (1-based), only present when segmentLength
+  is set
+
+- **segment_start**: Start time of the segment in seconds from the
+  beginning of the file, only present when segmentLength is set
+
+- **segment_duration**: Duration of the segment in seconds (may be
+  shorter for the final segment), only present when segmentLength is set
+
+- **timestamp**: Time or frame number of the feature (as reported by the
+  plugin)
 
 - **duration**: Duration of the feature (if applicable, otherwise NA)
 
@@ -197,5 +229,20 @@ result <- runPlugin(
   blockSize = 4096,  # Larger FFT for better frequency resolution
   stepSize = 2048    # 50% overlap (typical for frequency domain)
 )
+
+# Process a long recording in 60-second segments
+result <- runPlugin(
+  wave = "long_recording.wav",
+  key = "vamp-example-plugins:amplitudefollower",
+  segmentLength = 60  # 60-second segments
+)
+
+# Output now includes segment columns
+head(result$amplitude)
+#   segment segment_start segment_duration timestamp duration value label
+# 1       1             0               60      0.00       NA  0.12
+# 2       1             0               60      0.02       NA  0.15
+# ...
+# 50      2            60               60      0.00       NA  0.08  # Segment 2
 } # }
 ```
