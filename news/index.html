@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">ReVAMP</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.0.1</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.1.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -37,10 +37,18 @@
     </div>
 
     <div class="section level2">
+<h2 class="pkg-version" data-toc-text="1.1.0" id="revamp-110">ReVAMP 1.1.0<a class="anchor" aria-label="anchor" href="#revamp-110"></a></h2>
+<ul><li>
+<code><a href="../reference/runPlugin.html">runPlugin()</a></code> and <code><a href="../reference/runPlugins.html">runPlugins()</a></code> gain <code>segmentLength</code>, to process a recording in segments of that many seconds. The output then has <code>segment</code>, <code>segment_start</code> and <code>segment_duration</code> columns, and timestamps stay relative to the start of the file.</li>
+<li>
+<code><a href="../reference/vampResetCache.html">vampResetCache()</a></code> clears the cached plugin search path, so that a <code>VAMP_PATH</code> set with <code><a href="https://rdrr.io/r/base/Sys.setenv.html" class="external-link">Sys.setenv()</a></code> after ReVAMP is loaded takes effect; <code><a href="../reference/vampPaths.html">vampPaths()</a></code> calls it (<a href="https://github.com/edwbaker/ReVAMP/issues/1" class="external-link">#1</a>).</li>
+</ul></div>
+    <div class="section level2">
 <h2 class="pkg-version" data-toc-text="1.0.1" id="revamp-101">ReVAMP 1.0.1<a class="anchor" aria-label="anchor" href="#revamp-101"></a></h2><p class="text-muted">CRAN release: 2025-12-22</p>
 <ul><li>Fix some build warnings with GCC</li>
-<li>runPlugins() to handle multiple plugins simultaneously</li>
-<li>quote ‘Vamp’ properly in DESCRIPTON</li>
+<li>
+<code><a href="../reference/runPlugins.html">runPlugins()</a></code> to handle multiple plugins simultaneously</li>
+<li>quote ‘Vamp’ properly in DESCRIPTION</li>
 </ul></div>
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="1.0.0" id="revamp-100">ReVAMP 1.0.0<a class="anchor" aria-label="anchor" href="#revamp-100"></a></h2><p class="text-muted">CRAN release: 2025-12-19</p>

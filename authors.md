@@ -18,12 +18,15 @@
 Source:
 [`inst/CITATION`](https://github.com/edwbaker/ReVAMP/blob/main/inst/CITATION)
 
-Baker E (2025). *ReVAMP: R Interface to Vamp Audio Analysis Plugins*.
-<https://revamp.ebaker.me.uk>.
+Baker E (2026). *ReVAMP: R Interface to Vamp Audio Analysis Plugins*.
+[doi:10.32614/CRAN.package.ReVAMP](https://doi.org/10.32614/CRAN.package.ReVAMP).
+R package version 1.1.0, <https://revamp.ebaker.me.uk>.
 
     @Manual{,
       title = {ReVAMP: R Interface to Vamp Audio Analysis Plugins},
       author = {Ed Baker},
-      year = {2025},
+      year = {2026},
+      note = {R package version 1.1.0},
+      doi = {10.32614/CRAN.package.ReVAMP},
       url = {https://revamp.ebaker.me.uk},
     }
