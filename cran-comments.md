@@ -1,14 +1,12 @@
-# ReVAMP: Interface to Vamp Audio Analysis Plugin
+# ReVAMP 1.1.0
 
 ## Submission notes
 
-Fixed:  Warning on gcc15 build
+New features: `runPlugin()` and `runPlugins()` can analyse a recording in segments (`segmentLength`), and
+`vampResetCache()` lets a `VAMP_PATH` set after the package is loaded take effect.
 
-Tested on rhub: linux, macos-arm64, windows, clang-asan, clang-ubsan, gcc15, ubuntu-clang, ubuntu-gcc12, ubuntu-next, ubuntu-release
-Tested on win builder: release, devel
+Tested locally: Windows 11, R 4.6.1 (R CMD check --as-cran)
 
 ## R CMD check results
 
 0 errors | 0 warnings | 0 notes
-
-* This is a new release.

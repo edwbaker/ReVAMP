@@ -13,6 +13,7 @@ PluginLoader
 Rcpp
 SDK
 Sandler
+Sys
 VariableSampleRate
 Visualiser
 WAV
@@ -24,5 +25,7 @@ aubioonset
 blockSize
 devtools
 quantized
+segmentLength
+setenv
 stepSize
 th
